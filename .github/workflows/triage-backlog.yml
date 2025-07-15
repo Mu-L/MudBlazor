@@ -71,8 +71,8 @@ jobs:
         if [ -z "$backlog_size" ]; then
           backlog_size="1"
         fi
-        # Find issues with no labels, sorted from newest to oldest
-        issue_numbers=$(gh issue list --state open --json number,labels --order desc --jq '.[] | select((.labels // [] | length == 0)) | .number' | head -n "$backlog_size")
+        # Find issues with no labels (GitHub CLI returns newest first by default)
+        issue_numbers=$(gh issue list --state open --json number,labels --jq '.[] | select((.labels // [] | length == 0)) | .number' | head -n "$backlog_size")
         if [ -z "$issue_numbers" ]; then
           echo "No suitable issues found."
           echo "issues_found=false" >> $GITHUB_OUTPUT
