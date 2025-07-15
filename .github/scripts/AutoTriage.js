@@ -31,11 +31,11 @@ const core = require('@actions/core');
 
 // Safety-first design: script defaults to dry-run unless explicitly enabled
 const dryRun = process.env.AUTOTRIAGE_ENABLED !== 'true';
-console.log(`$${dryRun ? '❌' : '✅'} Enabled: ${dryRun ? 'false (dry-run mode)' : 'true'}`);
+console.log(`ℹ️ Enabled: ${dryRun ? 'false (dry-run mode)' : 'true'}`);
 
 // Verbose mode for detailed logging such as raw inputs and outputs
 const verbose = process.env.AUTOTRIAGE_VERBOSE === 'true';
-console.log(`$${verbose ? '✅' : '❌'} Verbose: ${verbose}`);
+console.log(`ℹ️ Verbose: ${verbose}`);
 
 // Load prompt from environment variable to allow changes without modifying the code
 const basePrompt = process.env.AUTOTRIAGE_PROMPT || `You are a GitHub issue analysis assistant for [PROJECT NAME].
@@ -191,6 +191,11 @@ async function applyLabels(labels, issue, repo, octokitInstance) {
     const labelsToAdd = labels.filter(l => !currentLabels.includes(l));
     const labelsToRemove = currentLabels.filter(l => !labels.includes(l));
 
+    if (labelsToAdd.length === 0 && labelsToRemove.length === 0) {
+        console.log('🏷️ No changes to labels are needed.');
+        return;
+    }
+
     if (!octokitInstance) {
         console.log(`🏷️ [SKIP] Would add labels:`, labelsToAdd);
         console.log(`🏷️ [SKIP] Would remove labels:`, labelsToRemove);
@@ -217,10 +222,6 @@ async function applyLabels(labels, issue, repo, octokitInstance) {
             });
         }
         console.log(`🏷️ Removed labels:`, labelsToRemove);
-    }
-
-    if (labelsToAdd.length === 0 && labelsToRemove.length === 0) {
-        console.log('🏷️ No changes to labels are needed.');
     }
 }
 
@@ -324,8 +325,9 @@ async function processIssue(issueOrPR, repo, geminiApiKey, octokitInstance, comm
     };
 
     // Log metadata in a readable, multi-line, sentence-style format
-    console.log(`📝 This ${metadata.state} ${itemType} was created by ${metadata.author} on ${metadata.created_at} and updated on ${metadata.updated_at}.`);
-    console.log(`📝 Title: "${issueOrPR.title}"`);
+    console.log(`📝 ${issueOrPR.title}`);
+    console.log(`📝 This ${metadata.state} ${itemType} was created by ${metadata.author} on ${metadata.created_at}`);
+    console.log(`📝 Last updated: ${metadata.updated_at}.`);
 
     // Analyze using the same AI logic with metadata
     const analysis = await analyzeIssue(itemText, geminiApiKey, metadata);
@@ -333,26 +335,23 @@ async function processIssue(issueOrPR, repo, geminiApiKey, octokitInstance, comm
 
     // Always apply suggested labels regardless of quality
     if (metadata.labels.length === 0) {
-        console.log('🏷️ No labels.');
+        console.log('🏷️ No existing labels');
     } else {
         console.log(`🏷️ Labels: [${metadata.labels.join(', ')}]`);
     }
     await applyLabels(analysis.labels, issueOrPR, repo, octokitInstance);
 
     if (metadata.comments_count === 0 && metadata.reactions_total === 0) {
-        console.log('💬 No comments or reactions.');
+        console.log('💬 No existing comments or reactions');
     } else {
         console.log(`💬 Comments: ${metadata.comments_count}, 👍 Reactions: ${metadata.reactions_total}`);
     }
 
-    if (isIssue) {
-        if (analysis.comment !== null) {
-            console.log(`💡 A comment could help: ${analysis.reason}`);
-            await postComment(issueOrPR, repo, octokitInstance, analysis.comment);
-        }
+    if (isIssue && analysis.comment !== null) {
+        console.log(`💡 A comment could help: ${analysis.reason}`);
+        await postComment(issueOrPR, repo, octokitInstance, analysis.comment);
     } else {
-        // For PRs: Only labeling, no quality checking or closing
-        console.log(`🏷️ PR #${issueOrPR.number} processed - labels applied only`);
+        console.log(`💡 No comment suggested`);
     }
 
     return analysis;
@@ -377,18 +376,18 @@ async function processIssue(issueOrPR, repo, geminiApiKey, octokitInstance, comm
 
     const [owner, repo] = GITHUB_REPOSITORY.split('/');
     const number = parseInt(GITHUB_ISSUE_NUMBER, 10);
-    console.log(`🎯 Target: ${owner}/${repo}#${number}`);
+    console.log(`📝 ${owner}/${repo}#${number}`);
 
     // Only create octokit if not in dry-run mode or if we need to fetch data
     let octokit = null;
     if (GITHUB_TOKEN) {
         octokit = new Octokit({ auth: GITHUB_TOKEN });
-        try {
-            const rateLimit = await octokit.rest.rateLimit.get();
-            console.log(`ℹ️ GitHub API Rate Limit: ${rateLimit.data.rate.remaining}/${rateLimit.data.rate.limit} requests remaining`);
-        } catch (e) {
-            console.warn('⚠️ Could not fetch API rate limit:', e.message);
-        }
+        // try {
+        //     const rateLimit = await octokit.rest.rateLimit.get();
+        //     console.log(`ℹ️ GitHub API Rate Limit: ${rateLimit.data.rate.remaining}/${rateLimit.data.rate.limit} requests remaining`);
+        // } catch (e) {
+        //     console.warn('⚠️ Could not fetch API rate limit:', e.message);
+        // }
     }
 
     // Fetch issue data from GitHub API
