@@ -58,12 +58,13 @@ jobs:
           stale-pr-message: |
             This pull request has been marked as stale.
 
-            Please let us know if we can help move it forwards! @MudBlazor/triage
+            Please let us know how we can help move it forwards! @MudBlazor/triage
           close-pr-message: |
             This pull request was closed automatically due to inactivity.
 
             If you would like to continue working on it, please open a new PR referencing this one.
 
+          exempt-all-assignees: true
           debug-only: ${{ env.DRY_RUN }}
 
   auto-triage:
