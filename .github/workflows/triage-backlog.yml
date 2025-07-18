@@ -54,7 +54,6 @@ jobs:
           days-before-pr-close: -1
           stale-issue-label: 'stale'
           debug-only: ${{ env.DRY_RUN }}
-          operations-per-run: ${{ env.DRY_RUN == 'true' && 100 || 15 }}
 
   auto-triage:
     runs-on: ubuntu-latest
