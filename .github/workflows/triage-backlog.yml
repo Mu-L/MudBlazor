@@ -42,17 +42,28 @@ jobs:
       - name: Mark stale issues
         uses: actions/stale@v9
         with:
-          any-of-labels: 'info required'
-          days-before-stale: 14
-          days-before-close: 14
+          stale-issue-label: 'stale'
+          any-of-issue-labels: 'info required'
+          days-before-issue-stale: 14
+          days-before-issue-close: 14
           stale-issue-message: |
             This issue has been marked as stale.  
             If you have any updates or additional information, please comment below.
 
             If no response is received, it will be automatically closed.
-          days-before-pr-stale: -1
-          days-before-pr-close: -1
-          stale-issue-label: 'stale'
+
+          stale-pr-label: 'stale'
+          days-before-pr-stale: 180
+          days-before-pr-close: 90
+          stale-pr-message: |
+            This pull request has been marked as stale.
+
+            Please let us know if we can help move it forwards! @MudBlazor/triage
+          close-pr-message: |
+            This pull request was closed automatically due to inactivity.
+
+            If you would like to continue working on it, please open a new PR referencing this one.
+
           debug-only: ${{ env.DRY_RUN }}
 
   auto-triage:
