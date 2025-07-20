@@ -74,15 +74,12 @@ async function callGemini(prompt, apiKey) {
                         },
                         required: ["rating", "reason", "comment", "labels"]
                     }
-                },
-                tools: [{
-                    googleSearch: {} // Enable search grounding
-                }]
+                }
             }),
             timeout: 60000
         }
     );
-    console.log(`⏱️ Gemini response time: ${Date.now() - start}ms`);
+    console.log(`🤖 Gemini response time: ${Date.now() - start}ms`);
 
     if (!response.ok) {
         const errText = await response.text();
