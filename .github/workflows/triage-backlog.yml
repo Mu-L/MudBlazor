@@ -2,7 +2,7 @@ name: Triage Backlog
 
 on:
   schedule:
-    - cron: '0 6 * * *' # Gemini rates reset at 7am, so we can use up the remaining quota for the day.
+    - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
       backlog-size:
@@ -11,123 +11,112 @@ on:
         default: '5'
         type: string
       issue-numbers:
-        description: 'Or use issue numbers (comma-separated)'
+        description: 'Or use issue numbers (space-separated)'
         required: false
         type: string
-      model:
-        description: 'Gemini model'
+      permissions:
+        description: 'Permissions (`none` for dry run)'
         required: false
-        default: 'gemini-2.5-flash'
+        default: 'label, comment, close, edit'
         type: string
-      dry-run:
-        description: 'Dry-run (no actual changes)'
-        required: false
-        default: true
-        type: boolean
-
-env:
-  DRY_RUN: ${{ inputs.dry-run || vars.AUTOTRIAGE_ENABLED != 'true' }}
 
 jobs:
-  stale-issues:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.repository == 'MudBlazor/MudBlazor'
-    
-    steps:
-      - name: Mark stale issues
-        uses: actions/stale@v9
-        with:
-          stale-issue-label: 'stale'
-          any-of-issue-labels: 'info required,question,answered,not planned,duplicate,invalid,fixed'
-          exempt-issue-labels: 'on hold'
-          days-before-issue-stale: 14
-          days-before-issue-close: 14
-          stale-issue-message: |
-            This issue has been marked as stale.  
-            If you have any updates or additional information, please comment below.
-
-            If no response is received, it will be automatically closed.
-          close-issue-message: |
-            If you're still experiencing this problem, please open a new issue with updated details.
-
-          stale-pr-label: 'stale'
-          exempt-pr-labels: 'on hold,breaking change'
-          days-before-pr-stale: 180
-          days-before-pr-close: 90
-          stale-pr-message: |
-            Hi, this pull request hasn't had activity in a few months and has been marked as stale.
-
-            Please let us know if you're still working on it! @MudBlazor/triage
-          close-pr-message: |
-            This pull request has been closed due to inactivity.
-
-            If you would like to continue working on it, please open a new PR referencing this one.
-
-          exempt-all-assignees: true
-          debug-only: ${{ env.DRY_RUN }}
-
   auto-triage:
     runs-on: ubuntu-latest
-    needs: stale-issues
-    if: github.event_name == 'workflow_dispatch' || github.repository == 'MudBlazor/MudBlazor'
-    
+    if: github.event_name == 'workflow_dispatch' || vars.AUTOTRIAGE_PERMISSIONS # Run manually or on a schedule if permissions are set up.
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-    
-    - name: Install dependencies
-      run: npm install node-fetch@2 @actions/core @octokit/rest
-    
-    - name: Get issues to process
-      id: get-issues
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        if [ -n "${{ inputs.issue-numbers }}" ]; then
-          # Process specific issues
-          echo "Processing specific issues: ${{ inputs.issue-numbers }}"
-          echo "${{ inputs.issue-numbers }}" | tr ', ' '\n' | grep -v '^$' | jq -R . | jq -s . > issues.json
-        else
-          # Find unlabeled issues for automated processing
-          backlog_size="${{ inputs.backlog-size || '30' }}"
-          echo "Finding $backlog_size unlabeled issues"
-          gh issue list \
-            --state open \
-            --limit 99999 \
-            --json number,labels \
-            --jq '.[] | select((.labels // [] | length == 0)) | .number' \
-            | head -n "$backlog_size" \
-            | jq -R . | jq -s . > issues.json
-        fi
-        
-        issue_count=$(cat issues.json | jq length)
-        echo "Found $issue_count issues to process"
-        echo "issue-count=$issue_count" >> $GITHUB_OUTPUT
-        
-        if [ "$issue_count" -eq 0 ]; then
-          echo "No issues found to process"
-          exit 0
-        fi
-    
-    - name: Process issues
-      if: steps.get-issues.outputs.issue-count > 0
-      env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        AUTOTRIAGE_ENABLED: ${{ env.DRY_RUN == 'false' }}
-        AUTOTRIAGE_MODEL: ${{ inputs.model }}
-      run: |
-        cat issues.json | jq -r '.[]' | while read -r issue_number; do
-          if [ -n "$issue_number" ]; then
-            echo "——————————————————————————————————Issue #$issue_number——————————————————————————————————"
-            export GITHUB_ISSUE_NUMBER="$issue_number"
-            node .github/scripts/AutoTriage.js
-            # Rate limiting delay
-            sleep 3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install node-fetch@2 @actions/core @octokit/rest
+
+      - name: Cache triage database
+        uses: actions/cache@v4
+        id: cache-db
+        with:
+          path: triage-db.json
+          # 1. The key is unique on every run, forcing a save on success.
+          key: ${{ runner.os }}-triage-database-${{ github.run_id }}
+          # 2. Restore-keys finds the most recent cache to use at the start.
+          restore-keys: |
+            ${{ runner.os }}-triage-database-
+
+      - name: Triage Issues
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTOTRIAGE_PERMISSIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.permissions || vars.AUTOTRIAGE_PERMISSIONS }}
+          AUTOTRIAGE_DB_PATH: ${{ github.workspace }}/triage-db.json
+          MAX_ISSUES: ${{ github.event_name == 'schedule' && 50 || inputs.backlog-size }}
+        run: |
+          if [ -n "${{ inputs.issue-numbers }}" ]; then
+            echo "Processing specified issues: ${{ inputs.issue-numbers }}"
+            issue_numbers="${{ inputs.issue-numbers }}"
+            max_count=""
+          else
+            echo "Processing up to $MAX_ISSUES issues from the backlog"
+            issue_numbers=$(gh issue list --state open --limit 9999 --search 'sort:updated-desc -label:enhancement -label:"on hold"' --json number --jq '.[].number')
+            max_count="$MAX_ISSUES"
           fi
-        done
+
+          count=0
+          for issue_number in $issue_numbers; do
+            if [ -n "$max_count" ] && [ "$count" -ge "$max_count" ]; then
+              break
+            fi
+            
+            export GITHUB_ISSUE_NUMBER="$issue_number"
+
+            # This structure tells the shell we are handling the exit code ourselves
+            if node .github/scripts/AutoTriage.js; then
+              # SUCCESS (exit code 0)
+              count=$((count + 1))
+              if [ -n "$max_count" ]; then
+                left=$((max_count - count))
+                echo "⏭️ $(date '+%Y-%m-%d %H:%M:%S'): $left left"
+              fi
+              sleep 10 # Rate limit
+            else
+              # FAILURE (exit code is non-zero)
+              exit_code=$?
+              if [ "$exit_code" -eq 1 ]; then
+                # Fatal error, fail the entire workflow
+                echo "❌ Fatal error while processing #${issue_number}"
+                exit 1
+              elif [ "$exit_code" -eq 2 ]; then
+                # Skippable issue. Do nothing and let the loop continue.
+                # The step will not be marked as failed.
+                :
+              else
+                # Any other unexpected error
+                echo "❌ Unexpected error (exit code $exit_code) for #${issue_number}"
+                exit "$exit_code"
+              fi
+            fi
+          done
+
+      - name: Display database stats
+        if: always()
+        run: |
+          if [ -f "triage-db.json" ]; then
+            total_entries=$(jq 'length' triage-db.json)
+            echo "Database now contains $total_entries triaged issues"
+            echo "Most recent entries:"
+            jq -r 'to_entries | sort_by(.value.lastTriaged) | reverse | .[0:5] | .[] | "  #\(.key): \(.value.lastTriaged)"' triage-db.json || echo "  No entries found"
+          else
+            echo "Database file not found"
+          fi
+
+      - name: Upload triage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-artifacts
+          path: |
+            triage-db.json
+            artifacts/
