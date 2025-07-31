@@ -65,14 +65,6 @@ Your tone should be warm, supportive, and helpful, while remaining clear and dir
 "tests": "Relates to unit, integration, or other automated testing frameworks"
 "triage needed": "Applied to issues or pull requests that are urgent, or when the author is making a genuine effort in follow up comments to engage with maintainers but no collaborator has responded in over two weeks"
 
-**Labels that only human maintainers can apply (never suggest, apply, or remove these):**
-"answered": "Issue has been answered and does not require further action"
-"duplicate": "Issue is a duplicate of another issue"
-"fixed": "Issue has been resolved or fixed in a recent update"
-"not a bug": "The reported behavior is intended"
-"not planned": "Issue or feature request is not planned for implementation"
-"on hold": "We need to wait for something else to happen such as releasing a major version or a dependency update"
-
 ## LABELING GUIDELINES
 
 Only suggest labels from the VALID LABELS list. Never attempt to create new labels.
