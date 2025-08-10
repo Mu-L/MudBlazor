@@ -274,19 +274,16 @@ async function processIssue(octokit, issue, lastTriaged, issueNumber, sharedData
         if (!hasRecentActivity) return { skipped: true, reason: 'no recent activity' };
         const initial = await callGemini(prompt, AI_MODEL_FAST, issueNumber);
         if (!initial.needsAction) {
-            console.log(`🤖 #${issueNumber}: This can probably be skipped`);
-            console.log(`  🤖 ${initial.reason}`);
+            console.log(`❌ #${issueNumber}: ${initial.reason}`);
             initial._model = 'fast';
             return initial;
         }
     }
 
-    console.log(`🤖 #${issueNumber}: Thinking...`);
     const metadata = await buildMetadata(issue, sharedData);
     const analysis = await callGemini(prompt, AI_MODEL_PRO, issueNumber);
     analysis._model = 'pro';
-    console.log(`  🤖 ${AI_MODEL_PRO} determined a severity of ${analysis.severity}/10`);
-    console.log(`  > ${analysis.reason}`);
+    console.log(`✅ #${issueNumber}: ${initial.reason}`);
 
     await executeActions(octokit, issueNumber, issue, analysis, metadata);
     return analysis;
@@ -358,7 +355,6 @@ async function main() {
 
     // Process each issue one by one
     for (const [issueNumber, issue] of issues) {
-
         try {
             const lastTriaged = triageDb[issueNumber]?.lastTriaged;
             const analysis = await processIssue(octokit, issue, lastTriaged, issueNumber, sharedData);
@@ -382,21 +378,20 @@ async function main() {
                     break;
                 }
             }
-
         } catch (error) {
             const msg = (error && error.message) ? error.message : String(error);
             if (msg === 'QUOTA_EXCEEDED') {
-                console.error(`❌ Quota exceeded`);
+                console.error(`❌ #${issueNumber}: Quota exceeded`);
                 break;
             }
             if (msg === 'MODEL_OVERLOADED') {
-                console.warn(`⚠️ Model overloaded`);
+                console.warn(`⚠️ #${issueNumber}: Model overloaded`);
                 skippedCount++;
                 await new Promise(resolve => setTimeout(resolve, 10000));
                 continue;
             }
             if (msg === 'INVALID_RESPONSE') {
-                console.warn(`⚠️ Invalid response`);
+                console.warn(`⚠️ #${issueNumber}: Invalid response`);
                 skippedCount++;
                 continue;
             }
@@ -404,7 +399,7 @@ async function main() {
         }
     }
 
-    console.log(`Analyzed ${processedCount} (max: ${MAX_ISSUES}) issues, skipped ${skippedCount}`);
+    console.log(`Analyzed ${processedCount} out of ${MAX_ISSUES} issues, skipped ${skippedCount}`);
     saveDatabase(triageDb);
 }
 
