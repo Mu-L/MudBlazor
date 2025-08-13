@@ -44,7 +44,7 @@ async function callGemini(prompt, model, issueNumber) {
                     labels: { type: "array", items: { type: "string" }, description: "The final set of labels the issue should have" },
                     close: { type: "boolean", description: "Set to true if the issue should be closed as part of this action", nullable: true },
                     newTitle: { type: "string", description: "A new title for the issue or pull request", nullable: true },
-                    needsAction: { type: "boolean", description: "Whether an action should be performed" },
+                    needsAction: { type: "boolean", description: "Whether you think you should perform an action" },
                 },
                 required: ["severity", "reason", "labels", "needsAction"]
             }
@@ -112,7 +112,6 @@ async function buildTimeline(octokit, issueNumber) {
         per_page: 100
     });
 
-    saveArtifact(issueNumber, `github-timeline.md`, JSON.stringify(timelineEvents, null, 2));
     return timelineEvents.map(event => {
         const base = { event: event.event, actor: event.actor?.login, timestamp: event.created_at };
         switch (event.event) {
@@ -142,10 +141,9 @@ async function buildTimeline(octokit, issueNumber) {
     }).filter(Boolean);
 }
 
-async function buildPrompt(octokit, issue, lastTriaged, previousReasoning, sharedData) {
+async function buildPrompt(octokit, issue, metadata, lastTriaged, previousReasoning) {
     const basePrompt = fs.readFileSync(path.join(__dirname, 'AutoTriage.prompt'), 'utf8');
     const issueText = `${issue.title}\n\n${issue.body || ''}`;
-    const metadata = await buildMetadata(issue, sharedData);
     const timelineReport = await buildTimeline(octokit, issue.number);
     const promptString = `${basePrompt}
 
@@ -159,8 +157,8 @@ ${JSON.stringify(metadata, null, 2)}
 ${JSON.stringify(timelineReport, null, 2)}
 
 === SECTION: TRIAGE CONTEXT ===
-Last triaged: ${lastTriaged}
-Previous reasoning: ${previousReasoning}
+Last triaged: ${lastTriaged || 'never'}
+Previous reasoning: ${previousReasoning || 'none'}
 Current triage date: ${new Date().toISOString()}
 Current permissions: ${Array.from(PERMISSIONS).join(', ') || 'none'}
 All possible permissions: label (add/remove labels), comment (post comments), close (close issue), edit (edit title)
@@ -184,8 +182,7 @@ async function updateLabels(octokit, issueNumber, issue, existingLabels, suggest
         ...labelsToAdd.map(l => `+${l}`),
         ...labelsToRemove.map(l => `-${l}`)
     ];
-    console.log(`  🏷️ Labels: ${existingLabels.join(', ') || 'none'}`);
-    console.log(`  🏷️ Changes: ${changes.join(', ')}`);
+    console.log(`  🏷️ Labels: ${existingLabels.join(', ') || 'none'}, ${changes.join(', ')}`);
 
     if (!octokit || !PERMISSIONS.has('label')) return;
 
@@ -262,16 +259,21 @@ async function closeIssue(octokit, issueNumber, reason = 'not_planned') {
     });
 }
 
-async function processIssue(octokit, issue, lastTriaged, issueNumber, sharedData) {
+async function processIssue(octokit, issue, lastTriaged, previousReasoning, issueNumber, sharedData) {
     const daysSinceTriage = lastTriaged ? (Date.now() - new Date(lastTriaged).getTime()) / 86400000 : Infinity;
     const hasRecentActivity = !lastTriaged || new Date(issue.updated_at) > new Date(lastTriaged);
+    const withinBacklogWindow = PROCESSING_BACKLOG && daysSinceTriage < 28;
 
-    // Build prompt just-in-time
-    const prompt = await buildPrompt(octokit, issue, lastTriaged, lastTriaged ? `Last triaged ${lastTriaged}` : '', sharedData);
+    // Skip early without building prompt if backlog processing and no recent activity
+    if (withinBacklogWindow && !hasRecentActivity) {
+        return { skipped: true, reason: 'no recent activity' };
+    }
+
+    const metadata = await buildMetadata(issue, sharedData);
+    const prompt = await buildPrompt(octokit, issue, metadata, lastTriaged, previousReasoning || '');
 
     // Fast pass when processing backlog and recently triaged
-    if (PROCESSING_BACKLOG && daysSinceTriage < 28) {
-        if (!hasRecentActivity) return { skipped: true, reason: 'no recent activity' };
+    if (withinBacklogWindow) {
         const initial = await callGemini(prompt, AI_MODEL_FAST, issueNumber);
         if (!initial.needsAction) {
             console.log(`❌ #${issueNumber}: ${initial.reason}`);
@@ -280,7 +282,6 @@ async function processIssue(octokit, issue, lastTriaged, issueNumber, sharedData
         }
     }
 
-    const metadata = await buildMetadata(issue, sharedData);
     const analysis = await callGemini(prompt, AI_MODEL_PRO, issueNumber);
     analysis._model = 'pro';
     console.log(`✅ #${issueNumber}: ${analysis.reason}`);
@@ -335,6 +336,8 @@ async function main() {
         if (!process.env[envVar]) throw new Error(`Missing environment variable: ${envVar}`);
     }
 
+    console.log('Permissions:', Array.from(PERMISSIONS).join(', ') || 'none');
+
     const triageDb = loadDatabase();
 
     // Fetch shared data
@@ -357,7 +360,8 @@ async function main() {
     for (const [issueNumber, issue] of issues) {
         try {
             const lastTriaged = triageDb[issueNumber]?.lastTriaged;
-            const analysis = await processIssue(octokit, issue, lastTriaged, issueNumber, sharedData);
+            const previousReasoning = triageDb[issueNumber]?.previousReasoning;
+            const analysis = await processIssue(octokit, issue, lastTriaged, previousReasoning, issueNumber, sharedData);
 
             if (analysis.skipped) {
                 skippedCount++;
