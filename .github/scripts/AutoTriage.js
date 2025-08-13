@@ -65,6 +65,7 @@ async function callGemini(prompt, model, issueNumber) {
 
     // Handle specific error cases
     if (response.status === 429) throw new Error('QUOTA_EXCEEDED');
+    if (response.status === 500) throw new Error('MODEL_INTERNAL_ERROR');
     if (response.status === 503) throw new Error('MODEL_OVERLOADED');
     if (!response.ok) {
         throw new Error(`${response.status} ${response.statusText}`);
@@ -261,30 +262,28 @@ async function closeIssue(octokit, issueNumber, reason = 'not_planned') {
 
 async function processIssue(octokit, issue, lastTriaged, previousReasoning, issueNumber, sharedData) {
     const daysSinceTriage = lastTriaged ? (Date.now() - new Date(lastTriaged).getTime()) / 86400000 : Infinity;
-    const hasRecentActivity = !lastTriaged || new Date(issue.updated_at) > new Date(lastTriaged);
-    const withinBacklogWindow = PROCESSING_BACKLOG && daysSinceTriage < 28;
+    const hasNewActivity = !lastTriaged || new Date(issue.updated_at) > new Date(lastTriaged);
 
-    // Skip early without building prompt if backlog processing and no recent activity
-    if (withinBacklogWindow && !hasRecentActivity) {
+    // Skip early without building prompt if working through backlog and the issue hasn't expired
+    if (PROCESSING_BACKLOG && daysSinceTriage < 28 && !hasNewActivity) {
         return { skipped: true, reason: 'no recent activity' };
     }
 
     const metadata = await buildMetadata(issue, sharedData);
     const prompt = await buildPrompt(octokit, issue, metadata, lastTriaged, previousReasoning || '');
 
-    // Fast pass when processing backlog and recently triaged
-    if (withinBacklogWindow) {
-        const initial = await callGemini(prompt, AI_MODEL_FAST, issueNumber);
-        if (!initial.needsAction) {
-            console.log(`❌ #${issueNumber}: ${initial.reason}`);
-            initial._model = 'fast';
-            return initial;
-        }
+    // Quick analysis before going further.
+    const initial = await callGemini(prompt, AI_MODEL_FAST, issueNumber);
+    initial._model = 'fast';
+    if (!initial.needsAction) {
+        console.log(`⏭️ #${issueNumber}: ${initial.reason}`);
+        return initial;
     }
 
+    // Full analysis before taking any action.
     const analysis = await callGemini(prompt, AI_MODEL_PRO, issueNumber);
     analysis._model = 'pro';
-    console.log(`✅ #${issueNumber}: ${analysis.reason}`);
+    console.log(`🤖 #${issueNumber}: ${analysis.reason}`);
 
     await executeActions(octokit, issueNumber, issue, analysis, metadata);
     return analysis;
@@ -384,19 +383,23 @@ async function main() {
             }
         } catch (error) {
             const msg = (error && error.message) ? error.message : String(error);
+            skippedCount++;
             if (msg === 'QUOTA_EXCEEDED') {
                 console.error(`❌ #${issueNumber}: Quota exceeded`);
                 break;
             }
+            if (msg === 'MODEL_INTERNAL_ERROR') {
+                console.error(`⚠️ #${issueNumber}: Model internal error`);
+                await new Promise(resolve => setTimeout(resolve, 30000));
+                continue;
+            }
             if (msg === 'MODEL_OVERLOADED') {
                 console.warn(`⚠️ #${issueNumber}: Model overloaded`);
-                skippedCount++;
-                await new Promise(resolve => setTimeout(resolve, 10000));
+                await new Promise(resolve => setTimeout(resolve, 30000));
                 continue;
             }
             if (msg === 'INVALID_RESPONSE') {
                 console.warn(`⚠️ #${issueNumber}: Invalid response`);
-                skippedCount++;
                 continue;
             }
             throw error;
@@ -437,7 +440,7 @@ function saveDatabase(db) {
 }
 
 main().catch(error => {
-    console.error(`💥 CRITICAL: ${error.message}`);
+    console.error(`💥 ${error.message}`);
     core.setFailed(error.message);
     process.exit(1);
 });
