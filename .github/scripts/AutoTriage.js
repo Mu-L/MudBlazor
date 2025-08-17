@@ -44,10 +44,9 @@ async function callGemini(prompt, model, issueNumber) {
                     labels: { type: "ARRAY", items: { type: "STRING" }, description: "The final set of labels the issue should have" },
                     close: { type: "BOOLEAN", description: "Set to true if the issue should be closed as part of this action", nullable: true },
                     newTitle: { type: "STRING", description: "A new title for the issue or pull request", nullable: true },
-                    needsAction: { type: "BOOLEAN", description: "Whether you think you should perform an action" },
+                    skipAnalysis: { type: "BOOLEAN", description: "True if the bot should skip full analysis and take no action because it's confident nothing else is needed" },
                 },
-                required: ["severity", "reason", "labels", "needsAction"],
-                propertyOrdering: ["severity", "reason", "comment", "labels", "close", "newTitle", "needsAction"]
+                required: ["severity", "reason", "labels"]
             },
             temperature: 0.2,
         }
@@ -182,7 +181,9 @@ async function updateLabels(octokit, issueNumber, issue, existingLabels, suggest
         ...labelsToAdd.map(l => `+${l}`),
         ...labelsToRemove.map(l => `-${l}`)
     ];
-    console.log(`  🏷️ Labels: ${existingLabels.join(' ') || 'none'}, ${changes.join(' ')}`);
+
+    const mergedLabels = [...(existingLabels || []), ...changes].filter(Boolean);
+    console.log(`  🏷️ Labels: ${mergedLabels.length ? mergedLabels.join(', ') : 'none'}`);
 
     if (!octokit || !PERMISSIONS.has('label')) return;
 
@@ -264,7 +265,7 @@ async function processIssue(octokit, issue, lastTriaged, previousReasoning, issu
     const hasNewActivity = !lastTriaged || new Date(issue.updated_at) > new Date(lastTriaged);
 
     // Skip early without building prompt if working through backlog and the issue hasn't expired
-    if (PROCESSING_BACKLOG && daysSinceTriage < 28 && !hasNewActivity) {
+    if (PROCESSING_BACKLOG && daysSinceTriage < 7 && !hasNewActivity) {
         return { skipped: true, reason: 'no recent activity' };
     }
 
@@ -274,7 +275,7 @@ async function processIssue(octokit, issue, lastTriaged, previousReasoning, issu
     // Quick analysis before going further.
     const initial = await callGemini(prompt, AI_MODEL_FAST, issueNumber);
     initial._model = 'fast';
-    if (!initial.needsAction) {
+    if (initial.skipAnalysis) {
         console.log(`⏭️ #${issueNumber}: ${initial.reason}`);
         return initial;
     }
