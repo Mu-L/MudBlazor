@@ -38,16 +38,35 @@ async function callGemini(prompt, model, issueNumber) {
             responseSchema: {
                 type: "OBJECT",
                 properties: {
-                    severity: { type: "INTEGER", description: "How severe the issue is on a scale of 1 to 10" },
+                    severity: {
+                        type: "INTEGER",
+                        description: "How severe the issue is on a scale of 1 to 10",
+                        minimum: 1,
+                        maximum: 10
+                    },
                     reason: { type: "STRING", description: "Brief thought process for logging purposes" },
-                    comment: { type: "STRING", description: "A comment to reply to the issue with", nullable: true },
-                    labels: { type: "ARRAY", items: { type: "STRING" }, description: "The final set of labels the issue should have" },
-                    close: { type: "BOOLEAN", description: "Set to true if the issue should be closed as part of this action", nullable: true },
-                    newTitle: { type: "STRING", description: "A new title for the issue or pull request", nullable: true },
+                    comment: {
+                        type: ["STRING", "NULL"],
+                        description: "A comment to reply to the issue with"
+                    },
+                    labels: {
+                        type: "ARRAY",
+                        items: { type: "STRING" },
+                        description: "The final set of labels the issue should have"
+                    },
+                    close: {
+                        type: ["BOOLEAN", "NULL"],
+                        description: "Set to true if the issue should be closed as part of this action"
+                    },
+                    newTitle: {
+                        type: ["STRING", "NULL"],
+                        description: "A new title for the issue or pull request"
+                    }
                 },
-                required: ["severity", "reason", "labels"]
+                required: ["severity", "reason", "labels"],
+                additionalProperties: false
             },
-            temperature: 0.2,
+            temperature: 0.2
         }
     };
 
