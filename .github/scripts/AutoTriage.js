@@ -114,7 +114,7 @@ async function buildTimeline(octokit, issueNumber) {
         per_page: 100
     });
 
-    return timelineEvents.slice(-30).map(event => {
+    return timelineEvents.slice(-50).map(event => {
         const base = { event: event.event, actor: event.actor?.login, timestamp: event.created_at };
         switch (event.event) {
             case 'commented': return { ...base, body: event.body };
@@ -127,10 +127,10 @@ async function buildTimeline(octokit, issueNumber) {
             case 'reopened':
             case 'locked':
             case 'unlocked': return base;
-            //case 'milestoned':
-            //case 'demilestoned': return { ...base, milestone: event.milestone?.title };
-            //case 'referenced': return { ...base, commit_id: event.commit_id, commit_url: event.commit_url };
-            //case 'mentioned': return base;
+            case 'milestoned':
+            case 'demilestoned': return { ...base, milestone: event.milestone?.title };
+            case 'referenced': return { ...base, commit_id: event.commit_id, commit_url: event.commit_url };
+            case 'mentioned': return base;
             case 'review_requested':
             case 'review_request_removed': return { ...base, requested_reviewer: event.requested_reviewer?.login };
             case 'review_dismissed': return { ...base, review: { state: event.dismissed_review?.state, dismissal_message: event.dismissal_message } };
