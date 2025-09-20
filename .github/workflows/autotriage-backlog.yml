@@ -13,11 +13,6 @@ on:
         type: boolean
         required: false
 
-permissions:
-  contents: read
-#  issues: write
-#  pull-requests: write
-
 concurrency:
   group: autotriage-backlog
   cancel-in-progress: true
@@ -49,9 +44,9 @@ jobs:
         with:
           issue-numbers: ${{ github.event.inputs.issues }}
           prompt-path: .github/AutoTriage.prompt
-          enabled: ${{ github.event_name == 'workflow_dispatch' && inputs.enabled || true }}
+          #enabled: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.enabled) }}
+          enabled: false
           db-path: triage-db.json
-          max-triages: 50
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
