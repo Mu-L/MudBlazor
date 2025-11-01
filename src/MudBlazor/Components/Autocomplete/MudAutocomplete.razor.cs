@@ -1090,6 +1090,8 @@ namespace MudBlazor
             else
             {
                 await ToggleMenuAsync();
+                if (Open)
+                    await FocusAsync();
             }
         }
 
