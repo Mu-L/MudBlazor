@@ -18,7 +18,6 @@ using MudBlazor.Interfaces;
 using MudBlazor.UnitTests.TestComponents.DataGrid;
 using MudBlazor.Utilities.Clone;
 using NUnit.Framework;
-using static Bunit.ComponentParameterFactory;
 
 namespace MudBlazor.UnitTests.Components
 {
@@ -434,9 +433,9 @@ namespace MudBlazor.UnitTests.Components
             var serverDataFunc =
                 new Func<GridState<TestModel1>, CancellationToken, Task<GridData<TestModel1>>>((x, c) => throw new NotImplementedException());
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                Context.RenderComponent<MudDataGrid<TestModel1>>(
-                    Parameter(nameof(MudDataGrid<TestModel1>.ServerData), serverDataFunc),
-                    Parameter(nameof(MudDataGrid<TestModel1>.Items), Array.Empty<TestModel1>())
+                Context.RenderComponent<MudDataGrid<TestModel1>>(parameters => parameters
+                    .Add(p => p.ServerData, serverDataFunc)
+                    .Add(p => p.Items, Array.Empty<TestModel1>())
                 )
             );
             exception.Message.Should().Be(
@@ -452,9 +451,9 @@ namespace MudBlazor.UnitTests.Components
             var serverDataFunc =
                 new Func<GridState<TestModel1>, CancellationToken, Task<GridData<TestModel1>>>((x, c) => throw new NotImplementedException());
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                Context.RenderComponent<MudDataGrid<TestModel1>>(
-                    Parameter(nameof(MudDataGrid<TestModel1>.ServerData), serverDataFunc),
-                    Parameter(nameof(MudDataGrid<TestModel1>.QuickFilter), (TestModel1 x) => true)
+                Context.RenderComponent<MudDataGrid<TestModel1>>(parameters => parameters
+                    .Add(p => p.ServerData, serverDataFunc)
+                    .Add(p => p.QuickFilter, (TestModel1 x) => true)
                 )
             );
             exception.Message.Should().Be("Do not supply both 'ServerData' and 'QuickFilter'.");
@@ -466,9 +465,9 @@ namespace MudBlazor.UnitTests.Components
             var virtualizeServerDataFunc =
                 new Func<GridStateVirtualize<TestModel1>, CancellationToken, Task<GridData<TestModel1>>>((x, c) => throw new NotImplementedException());
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                Context.RenderComponent<MudDataGrid<TestModel1>>(
-                    Parameter(nameof(MudDataGrid<TestModel1>.VirtualizeServerData), virtualizeServerDataFunc),
-                    Parameter(nameof(MudDataGrid<TestModel1>.QuickFilter), (TestModel1 x) => true)
+                Context.RenderComponent<MudDataGrid<TestModel1>>(parameters => parameters
+                    .Add(p => p.VirtualizeServerData, virtualizeServerDataFunc)
+                    .Add(p => p.QuickFilter, (TestModel1 x) => true)
                 )
             );
             exception.Message.Should().Be("Do not supply both 'VirtualizeServerData' and 'QuickFilter'.");
@@ -482,9 +481,9 @@ namespace MudBlazor.UnitTests.Components
             var virtualizeServerDataFunc =
                 new Func<GridStateVirtualize<TestModel1>, CancellationToken, Task<GridData<TestModel1>>>((x, c) => throw new NotImplementedException());
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                Context.RenderComponent<MudDataGrid<TestModel1>>(
-                    Parameter(nameof(MudDataGrid<TestModel1>.ServerData), serverDataFunc),
-                    Parameter(nameof(MudDataGrid<TestModel1>.VirtualizeServerData), virtualizeServerDataFunc)
+                Context.RenderComponent<MudDataGrid<TestModel1>>(parameters => parameters
+                    .Add(p => p.ServerData, serverDataFunc)
+                    .Add(p => p.VirtualizeServerData, virtualizeServerDataFunc)
                 )
             );
 
@@ -501,9 +500,9 @@ namespace MudBlazor.UnitTests.Components
             var virtualizeServerDataFunc =
                 new Func<GridStateVirtualize<TestModel1>, CancellationToken, Task<GridData<TestModel1>>>((x, c) => throw new NotImplementedException());
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                Context.RenderComponent<MudDataGrid<TestModel1>>(
-                    Parameter(nameof(MudDataGrid<TestModel1>.Items), Array.Empty<TestModel1>()),
-                    Parameter(nameof(MudDataGrid<TestModel1>.VirtualizeServerData), virtualizeServerDataFunc)
+                Context.RenderComponent<MudDataGrid<TestModel1>>(parameters => parameters
+                    .Add(p => p.Items, Array.Empty<TestModel1>())
+                    .Add(p => p.VirtualizeServerData, virtualizeServerDataFunc)
                 )
             );
 
@@ -633,8 +632,8 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public void DataGridMultiSelectionTest_Should_Not_Render_Footer_If_ShowInFooter_Is_False()
         {
-            var comp = Context.RenderComponent<DataGridMultiSelectionTest>(
-                Parameter(nameof(MudBlazor.UnitTests.TestComponents.DataGrid.DataGridMultiSelectionTest.ShowInFooter), false));
+            var comp = Context.RenderComponent<DataGridMultiSelectionTest>(parameters => parameters
+                .Add(p => p.ShowInFooter, false));
             comp.FindAll("td.footer-cell").Should().BeEmpty();
         }
 
@@ -1213,14 +1212,11 @@ namespace MudBlazor.UnitTests.Components
             dataGrid.Instance.CanceledEditingItem.Should().Be(cancelCallback);
 
             // Set some parameters manually so that they are covered.
-            var parameters = new[]
-            {
-                ComponentParameter.CreateParameter(nameof(dataGrid.Instance.MultiSelection), true),
-                ComponentParameter.CreateParameter(nameof(dataGrid.Instance.ReadOnly), false),
-                ComponentParameter.CreateParameter(nameof(dataGrid.Instance.EditMode), DataGridEditMode.Cell),
-                ComponentParameter.CreateParameter(nameof(dataGrid.Instance.EditTrigger), DataGridEditTrigger.OnRowClick)
-            };
-            await dataGrid.SetParametersAndRenderAsync(parameters);
+            await dataGrid.SetParametersAndRenderAsync(parameters => parameters
+                .Add(x => x.MultiSelection, true)
+                .Add(x => x.ReadOnly, false)
+                .Add(x => x.EditMode, DataGridEditMode.Cell)
+                .Add(x => x.EditTrigger, DataGridEditTrigger.OnRowClick));
 
             // Make sure that the callbacks have not been fired yet.
             comp.Instance.RowClicked.Should().Be(false);
@@ -3697,9 +3693,7 @@ namespace MudBlazor.UnitTests.Components
             var comp = Context.RenderComponent<DataGridShowMenuIconTest>();
             var dataGrid = comp.FindComponent<MudDataGrid<DataGridShowMenuIconTest.Item>>();
             dataGrid.FindAll(".mud-table-toolbar .mud-menu").Should().BeEmpty();
-            var parameters = new List<ComponentParameter>();
-            parameters.Add(ComponentParameter.CreateParameter(nameof(dataGrid.Instance.ShowMenuIcon), true));
-            await dataGrid.SetParametersAndRenderAsync(parameters.ToArray());
+            await dataGrid.SetParametersAndRenderAsync(parameters => parameters.Add(x => x.ShowMenuIcon, true));
             dataGrid.FindAll(".mud-table-toolbar .mud-menu").Should().NotBeEmpty();
         }
 
@@ -3713,9 +3707,7 @@ namespace MudBlazor.UnitTests.Components
 
             comp.Find(".filter-button").Click();
             var input = comp.FindComponent<MudTextField<string>>();
-            var parameters = new List<ComponentParameter>();
-            parameters.Add(ComponentParameter.CreateParameter(nameof(input.Instance.Value), "test"));
-            await input.SetParametersAndRenderAsync(parameters.ToArray());
+            await input.SetParametersAndRenderAsync(parameters => parameters.Add(x => x.Value, "test"));
             comp.Find(".apply-filter-button").Click();
 
             await comp.InvokeAsync(() =>
@@ -3869,19 +3861,13 @@ namespace MudBlazor.UnitTests.Components
         {
             var comp = Context.RenderComponent<DataGridCustomFilteringTest>();
             var dataGrid = comp.FindComponent<MudDataGrid<DataGridCustomFilteringTest.Model>>();
-            var parameters = new List<ComponentParameter>();
-            parameters.Add(ComponentParameter.CreateParameter(nameof(dataGrid.Instance.Filterable), false));
-            await dataGrid.SetParametersAndRenderAsync(parameters.ToArray());
+            await dataGrid.SetParametersAndRenderAsync(parameters => parameters.Add(x => x.Filterable, false));
             dataGrid.Instance.DropContainerHasChanged();
             dataGrid.FindAll(".filter-button").Should().BeEmpty();
-            parameters.Clear();
-            parameters.Add(ComponentParameter.CreateParameter(nameof(dataGrid.Instance.Filterable), true));
-            await dataGrid.SetParametersAndRenderAsync(parameters.ToArray());
+            await dataGrid.SetParametersAndRenderAsync(parameters => parameters.Add(x => x.Filterable, true));
             dataGrid.Instance.DropContainerHasChanged();
             dataGrid.FindAll(".filter-button").Should().NotBeEmpty();
-            parameters.Clear();
-            parameters.Add(ComponentParameter.CreateParameter(nameof(dataGrid.Instance.ShowFilterIcons), false));
-            await dataGrid.SetParametersAndRenderAsync(parameters.ToArray());
+            await dataGrid.SetParametersAndRenderAsync(parameters => parameters.Add(x => x.ShowFilterIcons, false));
             dataGrid.Instance.DropContainerHasChanged();
             dataGrid.FindAll(".filter-button").Should().BeEmpty();
         }
@@ -4609,9 +4595,7 @@ namespace MudBlazor.UnitTests.Components
             dataGrid.Instance.GetState(x => x.SelectedItems).Count.Should().Be(2);
             dataGrid.FindAll(".mud-checkbox-true").Count.Should().Be(2);
 
-            var parameters = new List<ComponentParameter>();
-            parameters.Add(ComponentParameter.CreateParameter(nameof(dataGrid.Instance.SelectOnRowClick), false));
-            await dataGrid.SetParametersAndRenderAsync(parameters.ToArray());
+            await dataGrid.SetParametersAndRenderAsync(parameters => parameters.Add(x => x.SelectOnRowClick, false));
 
             // deselect all programmatically
             await comp.InvokeAsync(async () => await dataGrid.Instance.SetSelectAllAsync(false));
@@ -4648,12 +4632,7 @@ namespace MudBlazor.UnitTests.Components
             dataGrid.Instance.GetState(x => x.SelectedItems).Count.Should().Be(0);
             dataGrid.FindAll(".mud-checkbox-true").Count.Should().Be(0);
 
-            var parameters = new List<ComponentParameter>
-            {
-                ComponentParameter.CreateParameter(nameof(dataGrid.Instance.SelectOnRowClick), false)
-            };
-
-            await dataGrid.SetParametersAndRenderAsync(parameters.ToArray());
+            await dataGrid.SetParametersAndRenderAsync(parameters => parameters.Add(x => x.SelectOnRowClick, false));
 
             // deselect all programmatically
             await comp.InvokeAsync(async () => await dataGrid.Instance.SetSelectAllAsync(false));
