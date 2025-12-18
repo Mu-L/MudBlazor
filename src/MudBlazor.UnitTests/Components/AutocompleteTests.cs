@@ -2328,28 +2328,36 @@ namespace MudBlazor.UnitTests.Components
             var auto = Context.Render<MudAutocomplete<string>>();
 
             auto.Instance.PopoverFixed.Should().BeFalse();
-            auto.Instance.OverflowBehavior.Should().Be(MudGlobal.PopoverDefaults.OverflowBehavior);
+            // When not set, should use global default from PopoverOptions
+            auto.Instance.OverflowBehavior.Should().BeNull();
+            auto.Instance.Modal.Should().BeNull();
         }
 
         [Test]
         public void PopoverSettings_OverridesDefaultValues()
         {
-            var originalOverflowBehavior = MudGlobal.PopoverDefaults.OverflowBehavior;
-            try
+            var auto = Context.Render<MudAutocomplete<string>>(p =>
             {
-                MudGlobal.PopoverDefaults.OverflowBehavior = OverflowBehavior.FlipNever;
-                var auto = Context.Render<MudAutocomplete<string>>(p =>
-                {
-                    p.Add(p => p.PopoverFixed, true);
-                });
+                p.Add(p => p.PopoverFixed, true);
+                p.Add(p => p.OverflowBehavior, OverflowBehavior.FlipNever);
+                p.Add(p => p.Modal, true);
+            });
 
-                auto.Instance.PopoverFixed.Should().BeTrue();
-                auto.Instance.OverflowBehavior.Should().Be(OverflowBehavior.FlipNever);
-            }
-            finally
-            {
-                MudGlobal.PopoverDefaults.OverflowBehavior = originalOverflowBehavior;
-            }
+            auto.Instance.PopoverFixed.Should().BeTrue();
+            auto.Instance.OverflowBehavior.Should().Be(OverflowBehavior.FlipNever);
+            auto.Instance.Modal.Should().BeTrue();
+        }
+
+        [Test]
+        public void PopoverSettings_UsesGlobalDefaultsFromPopoverOptions()
+        {
+            // The default PopoverOptions should have OverflowBehavior.FlipOnOpen and ModalOverlay = false
+            var auto = Context.Render<MudAutocomplete<string>>();
+
+            // Verify that the component is using the global defaults
+            // OverflowBehavior and Modal should be null (using PopoverOptions defaults)
+            auto.Instance.OverflowBehavior.Should().BeNull();
+            auto.Instance.Modal.Should().BeNull();
         }
     }
 }
