@@ -10,17 +10,10 @@ namespace MudBlazor;
 /// </summary>
 public abstract class BaseMask : IMask
 {
-    protected bool _initialized;
-    protected Dictionary<char, MaskChar> _maskDict = [];
-
-    protected MaskChar[] _maskChars =
-    [
-        MaskChar.Letter('a'), MaskChar.Digit('0'), MaskChar.LetterOrDigit('*')
-    ];
-
-    // per definition (unless defined otherwise in subclasses) delimiters are chars
-    // in the mask which do not match any MaskChar
-    protected HashSet<char> _delimiters = [];
+    private bool _initialized;
+    private Dictionary<char, MaskChar> _maskDict = [];
+    private MaskChar[] _maskChars = [MaskChar.Letter('a'), MaskChar.Digit('0'), MaskChar.LetterOrDigit('*')];
+    private HashSet<char> _delimiters = [];
 
     /// <summary>
     /// Initialize all internal data structures. Can be called multiple times,
@@ -40,11 +33,9 @@ public abstract class BaseMask : IMask
     protected virtual void InitInternals()
     {
         _maskDict = _maskChars.ToDictionary(x => x.Char);
-        if (Mask == null)
-            _delimiters = new();
-        else
-            _delimiters =
-                new HashSet<char>(Mask.Where(c => _maskChars.All(maskDef => maskDef.Char != c)));
+        _delimiters = string.IsNullOrEmpty(Mask)
+            ? []
+            : new HashSet<char>(Mask.Where(c => _maskChars.All(maskDef => maskDef.Char != c)));
     }
 
     /// <inheritdoc />
@@ -84,6 +75,46 @@ public abstract class BaseMask : IMask
         }
     }
 
+    /// <summary>
+    /// Gets the mask dictionary for internal use.
+    /// </summary>
+    protected IReadOnlyDictionary<char, MaskChar> MaskDictionary => _maskDict;
+
+    /// <summary>
+    /// Gets the set of delimiter characters.
+    /// </summary>
+    protected IReadOnlySet<char> Delimiters => _delimiters;
+
+    /// <summary>
+    /// Adds a delimiter character to the set of delimiters.
+    /// </summary>
+    /// <param name="delimiter">The delimiter character to add.</param>
+    protected void AddDelimiter(char delimiter)
+    {
+        _delimiters.Add(delimiter);
+    }
+
+    /// <summary>
+    /// Clears all delimiters and sets new ones.
+    /// </summary>
+    /// <param name="delimiters">The string of delimiter characters.</param>
+    protected void SetDelimiters(string delimiters)
+    {
+        _delimiters.Clear();
+        foreach (var d in delimiters)
+        {
+            _delimiters.Add(d);
+        }
+    }
+
+    /// <summary>
+    /// Forces reinitialization on next access.
+    /// </summary>
+    protected void ForceReinitialize()
+    {
+        _initialized = false;
+    }
+
     /// <inheritdoc />
     public abstract void Insert(string? input);
 
@@ -97,7 +128,7 @@ public abstract class BaseMask : IMask
     public void Clear()
     {
         Init();
-        Text = "";
+        Text = string.Empty;
         CaretPos = 0;
         Selection = null;
     }
@@ -116,11 +147,12 @@ public abstract class BaseMask : IMask
     protected virtual void UpdateText(string text)
     {
         // don't show a text consisting only of delimiters and placeholders (no actual input)
-        if (!AllowOnlyDelimiters && text.All(c => _delimiters.Contains(c)))
+        if (!AllowOnlyDelimiters && text.All(c => Delimiters.Contains(c)))
         {
-            Text = "";
+            Text = string.Empty;
             return;
         }
+
         Text = text;
         CaretPos = ConsolidateCaret(Text, CaretPos);
     }
@@ -138,29 +170,29 @@ public abstract class BaseMask : IMask
     /// <returns>When <c>true</c>, the character is a delimiter.</returns>
     protected virtual bool IsDelimiter(char maskChar)
     {
-        return _delimiters.Contains(maskChar);
+        return Delimiters.Contains(maskChar);
     }
 
     /// <inheritdoc />
-    public virtual void UpdateFrom(IMask o)
+    public virtual void UpdateFrom(IMask? mask)
     {
-        if (o is not BaseMask other)
-            return;
-        if (other.Mask != Mask)
+        if (mask is BaseMask baseMask)
         {
-            Mask = other.Mask;
-            _initialized = false;
-        }
-        if (other.MaskChars != null)
-        {
-            var maskChars = new HashSet<MaskChar>(_maskChars ?? []);
-            if (other.MaskChars.Length != MaskChars.Length || other.MaskChars.Any(x => !maskChars.Contains(x)))
+            if (baseMask.Mask != Mask)
             {
-                _maskChars = other.MaskChars;
+                Mask = baseMask.Mask;
                 _initialized = false;
             }
+
+            var maskChars = new HashSet<MaskChar>(_maskChars);
+            if (baseMask.MaskChars.Length != MaskChars.Length || baseMask.MaskChars.Any(maskChar => !maskChars.Contains(maskChar)))
+            {
+                _maskChars = baseMask.MaskChars;
+                _initialized = false;
+            }
+
+            Refresh();
         }
-        Refresh();
     }
 
     /// <summary>
@@ -173,8 +205,10 @@ public abstract class BaseMask : IMask
         SetText(Text);
         CaretPos = ConsolidateCaret(Text, caret);
         Selection = sel;
-        if (sel != null)
+        if (sel is not null)
+        {
             ConsolidateSelection();
+        }
     }
 
     /// <summary>
@@ -185,12 +219,12 @@ public abstract class BaseMask : IMask
     /// <returns>Two strings split at the specified position.</returns>
     internal static (string, string) SplitAt(string? text, int pos)
     {
-        text ??= "";
+        text ??= string.Empty;
         if (pos <= 0)
-            return ("", text);
+            return (string.Empty, text);
         if (pos >= text.Length)
-            return (text, "");
-        return (text.Substring(0, pos), text.Substring(pos));
+            return (text, string.Empty);
+        return (text[..pos], text[pos..]);
     }
 
     /// <summary>
@@ -216,7 +250,7 @@ public abstract class BaseMask : IMask
     /// </remarks>
     protected void ConsolidateSelection()
     {
-        if (Selection == null)
+        if (Selection is null)
             return;
         var sel = Selection.Value;
         if (sel.Item1 == sel.Item2)
@@ -235,8 +269,8 @@ public abstract class BaseMask : IMask
     {
         var start = ConsolidateCaret(text, selection.Item1);
         var end = ConsolidateCaret(text, selection.Item2);
-        (var s1, var rest) = SplitAt(text, start);
-        (var s2, var s3) = SplitAt(rest, end - start);
+        var (s1, rest) = SplitAt(text, start);
+        var (s2, s3) = SplitAt(rest, end - start);
         return (s1, s2, s3);
     }
 
@@ -248,23 +282,21 @@ public abstract class BaseMask : IMask
     /// </remarks>
     public override string ToString()
     {
-        var text = Text ?? "";
+        var text = Text ?? string.Empty;
         ConsolidateSelection();
-        if (Selection == null)
+        if (Selection is null)
         {
             var pos = ConsolidateCaret(text, CaretPos);
             if (pos < text.Length)
                 return text.Insert(pos, "|");
             return text + "|";
         }
-        else
-        {
-            var sel = Selection.Value;
-            var start = ConsolidateCaret(text, sel.Item1);
-            var end = ConsolidateCaret(text, sel.Item2);
-            (var s1, var rest) = SplitAt(text, start);
-            (var s2, var s3) = SplitAt(rest, end - start);
-            return s1 + "[" + s2 + "]" + s3;
-        }
+
+        var sel = Selection.Value;
+        var start = ConsolidateCaret(text, sel.Item1);
+        var end = ConsolidateCaret(text, sel.Item2);
+        var (s1, rest) = SplitAt(text, start);
+        var (s2, s3) = SplitAt(rest, end - start);
+        return s1 + "[" + s2 + "]" + s3;
     }
 }

@@ -39,7 +39,7 @@ namespace MudBlazor
         /// Inserts text at the current cursor position.
         /// </summary>
         /// <param name="input">The characters to insert.</param>
-        void Insert(string input);
+        void Insert(string? input);
 
         /// <summary>
         /// Triggers a delete at the current cursor position.
@@ -71,7 +71,7 @@ namespace MudBlazor
         /// <summary>
         /// Copies the mask and mask characters from the specified mask.
         /// </summary>
-        /// <param name="other">The mask to copy from.</param>
-        void UpdateFrom(IMask other);
+        /// <param name="mask">The mask to copy from.</param>
+        void UpdateFrom(IMask? mask);
     }
 }
