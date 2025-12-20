@@ -5,6 +5,7 @@ changelog:
       - docs
       - tests
       - dependency
+      - refactor
   categories:
     - title: Breaking Changes
       labels:
@@ -13,6 +14,7 @@ changelog:
       labels:
         - new component
         - enhancement
+        - API change
     - title: Bug Fixes
       labels:
         - bug
