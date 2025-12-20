@@ -1,9 +1,4 @@
 changelog:
-  exclude:
-    labels:
-      - build
-      - docs
-      - tests
   categories:
     - title: Breaking Changes
       labels:
@@ -21,6 +16,9 @@ changelog:
         - "*"
       exclude:
         labels:
+          - build
+          - docs
+          - tests
           - dependency
           - refactor
           - performance
