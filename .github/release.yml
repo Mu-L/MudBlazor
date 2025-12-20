@@ -19,7 +19,8 @@ changelog:
     - title: Other Changes
       labels:
         - "*"
-      exclude-labels:
-        - dependency
-        - refactor
-        - performance
+      exclude:
+        labels:
+          - dependency
+          - refactor
+          - performance
