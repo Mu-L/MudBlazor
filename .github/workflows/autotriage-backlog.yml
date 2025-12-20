@@ -46,7 +46,8 @@ jobs:
           issue-numbers: ${{ github.event.inputs.issues }}
           prompt-path: .github/AutoTriage.prompt
           enabled: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.enabled) }}
-          skip-unchanged: true  # Only process new/updated issues. This means stale issues won't be closed but saves tokens.
+          max-triages: 40
+          max-fast-runs: 40 # keep it low so we don't keep checking the same issues for staleness
           db-path: triage-db.json
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
