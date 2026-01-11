@@ -1409,6 +1409,49 @@ namespace MudBlazor.UnitTests.Components
         }
 
         [Test]
+        public async Task DatePickerTest_KeyboardNavigation_FixYear_CannotBeChanged()
+        {
+            var startDate = new DateTime(2022, 12, 31, new CultureInfo("en-US").Calendar);
+            var comp = Context.Render<SimpleMudDatePickerTest>(parameters => parameters
+                .Add(x => x.Date, startDate)
+                .Add(x => x.OpenTo, OpenTo.Month)
+                .Add(x => x.FixYear, 2022));
+            var datePickerComponent = comp.FindComponent<MudDatePicker>();
+            var datePicker = datePickerComponent.Instance;
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "Enter", Type = "keydown", }));
+            comp.WaitForAssertion(() => comp.FindAll("div.mud-picker-open").Count.Should().Be(1));
+            //try to select year outside fixed year in month view
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "ArrowUp", Type = "keydown", ShiftKey = true }));
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "ArrowDown", Type = "keydown", ShiftKey = true }));
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "ArrowDown", Type = "keydown", ShiftKey = true }));
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "Enter", Type = "keydown", }));
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "Enter", Type = "keydown", }));
+            comp.WaitForAssertion(() => comp.FindAll("div.mud-picker-open").Count.Should().Be(0));
+            datePicker.Date.Should().Be(startDate);
+        }
+
+        [Test]
+        public async Task DatePickerTest_KeyboardNavigation_FixMonth_CannotBeChanged()
+        {
+            var startDate = new DateTime(2022, 12, 31, new CultureInfo("en-US").Calendar);
+            var comp = Context.Render<SimpleMudDatePickerTest>(parameters => parameters
+                .Add(x => x.Date, startDate)
+                .Add(x => x.OpenTo, OpenTo.Date)
+                .Add(x => x.FixMonth, 12));
+            var datePickerComponent = comp.FindComponent<MudDatePicker>();
+            var datePicker = datePickerComponent.Instance;
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "Enter", Type = "keydown", }));
+            comp.WaitForAssertion(() => comp.FindAll("div.mud-picker-open").Count.Should().Be(1));
+            //try to select month outside fixed month in date view
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "ArrowLeft", Type = "keydown", ShiftKey = true }));
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "ArrowRight", Type = "keydown", ShiftKey = true }));
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "ArrowRight", Type = "keydown", ShiftKey = true }));
+            await comp.InvokeAsync(() => datePicker.OnHandleKeyDownAsync(new KeyboardEventArgs() { Key = "Enter", Type = "keydown", }));
+            comp.WaitForAssertion(() => comp.FindAll("div.mud-picker-open").Count.Should().Be(0));
+            datePicker.Date.Should().Be(startDate);
+        }
+
+        [Test]
         public async Task DatePickerTest_GoToDate()
         {
             var comp = Context.Render<SimpleMudDatePickerTest>();
