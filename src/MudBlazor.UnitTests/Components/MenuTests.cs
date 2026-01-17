@@ -16,6 +16,20 @@ namespace MudBlazor.UnitTests.Components
     [TestFixture]
     public class MenuTests : BunitTest
     {
+        private int _originalHoverDelay;
+
+        [SetUp]
+        public void StoreMenuDefaults()
+        {
+            _originalHoverDelay = MudGlobal.MenuDefaults.HoverDelay;
+        }
+
+        [TearDown]
+        public void RestoreMenuDefaults()
+        {
+            MudGlobal.MenuDefaults.HoverDelay = _originalHoverDelay;
+        }
+
         [Test]
         public async Task OpenMenu_ClickFirstItem_CheckClosed()
         {

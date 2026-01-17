@@ -1387,7 +1387,7 @@ namespace MudBlazor.UnitTests.Components
                 .Add(p => p.ProgressIndicatorTemplate, fragment));
 
             comp.Markup.Should().NotContain("Loading...");
-            autocompletecomp.Find("input").Input("Calif");
+            await comp.InvokeAsync(() => autocompletecomp.Find("input").Input("Calif"));
 
             // Test show
             await comp.WaitForAssertionAsync(() => comp.Find("div.mud-autocomplete").ClassList.Should().Contain("mud-autocomplete--with-progress"));
@@ -1415,7 +1415,7 @@ namespace MudBlazor.UnitTests.Components
                 .Add(p => p.ProgressIndicatorInPopoverTemplate, fragment));
 
             comp.Markup.Should().NotContain("Loading...");
-            autocompleteComponent.Find("input").Input("Calif");
+            await comp.InvokeAsync(() => autocompleteComponent.Find("input").Input("Calif"));
 
             // Test show
             await comp.WaitForAssertionAsync(() => comp.Find("div.mud-autocomplete").ClassList.Should().Contain("mud-autocomplete--with-progress"));
