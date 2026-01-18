@@ -296,7 +296,7 @@ public partial class TestsForApiPages
         cb.AddLine(@"_ctx.Services.AddSingleton<NavigationManager>(new MockNavigationManager(""https://localhost:2112/"", $""https://localhost:2112/components/{typeName}""));");
         cb.AddLine(@"var comp = _ctx.Render<Api>(parameters => parameters.Add(x => x.TypeName, typeName));");
         cb.AddLine(@"await _ctx.Services.GetService<IRenderQueueService>().WaitUntilEmpty();");
-        cb.AddLine(@"comp.Markup.Should().NotContain($""Sorry, the type {typeName} was not found"");");
+        cb.AddLine(@"comp.Find("".mud-breadcrumbs"");");
         cb.AddLine("if (hasExampleLink)");
         cb.AddLine("{");
         cb.IndentLevel++;
@@ -322,7 +322,7 @@ public partial class TestsForApiPages
         cb.AddLine(@"_ctx.Services.AddSingleton<NavigationManager>(new MockNavigationManager(""https://localhost:2112/"", $""https://localhost:2112/components/api/{component}""));");
         cb.AddLine(@"var comp = _ctx.Render<Api>(parameters => parameters.Add(x => x.TypeName, component));");
         cb.AddLine(@"await _ctx.Services.GetService<IRenderQueueService>().WaitUntilEmpty();");
-        cb.AddLine(@"comp.Markup.Should().NotContain($""Sorry, the type {component} was not found"");");
+        cb.AddLine(@"comp.Find("".mud-breadcrumbs"");");
         cb.IndentLevel--;
         cb.AddLine("}");
         cb.AddLine();
