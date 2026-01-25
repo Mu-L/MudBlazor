@@ -4880,21 +4880,13 @@ namespace MudBlazor.UnitTests.Components
 
             // Mouse click down
             var resizer = comp.FindAll(".mud-resizer").ElementAt(0);
-            await comp.InvokeAsync(() => resizer.PointerDown());
+            await resizer.PointerDownAsync(new PointerEventArgs { ClientX = 100, PointerId = 1, Detail = 1 });
 
-            // Mouse move and release
-            var resizeService = dgComp.Instance.ResizeService;
-            var resizeServiceType = resizeService.GetType();
-            var eventListener = (EventListener)resizeServiceType
-                .GetField("_eventListener", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(resizeService);
-            var upEventId = (Guid)resizeServiceType
-                .GetField("_pointerUpSubscriptionId", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(resizeService)!;
-            await comp.InvokeAsync(async () => await eventListener!.OnEventOccur(upEventId, """{"ClientX":-10}"""));
+            // Simulate pointer move and release (simplified since we're using pointer events directly)
+            await resizer.PointerMoveAsync(new PointerEventArgs { ClientX = 90, PointerId = 1 });
+            await resizer.PointerUpAsync(new PointerEventArgs { ClientX = 90, PointerId = 1 });
 
             // Assert
-
             comp.FindAll("th").Count.Should().Be(2, "Two columns are displayed");
             comp.Find("th").GetStyle().Should().Contain(cssProp => cssProp.Name == "width", "The first column is resized");
         }

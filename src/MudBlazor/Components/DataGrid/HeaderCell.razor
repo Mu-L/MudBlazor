@@ -2,9 +2,11 @@
 @inherits MudComponentBase
 @using System.Diagnostics
 @using MudBlazor.Resources
+@using Microsoft.JSInterop
 @typeparam T
 
 @inject InternalMudLocalizer Localizer
+@inject IJSRuntime JSRuntime
 
 @if (IsOnlyHeader)
 {
@@ -27,7 +29,13 @@ else if (Column != null && !Column.HiddenState.Value)
         }
         @if (resizable)
         {
-            <div @onpointerdown=OnResizerPointerDown @onpointerover=OnResizerPointerOver @onpointerleave=OnResizerPointerLeave
+            <div @ref="_resizerElement"
+                 @onpointerdown="this.AsNonRenderingEventHandler<PointerEventArgs>(OnResizerPointerDown)" 
+                 @onpointerdown:stopPropagation="true"
+                 @onpointermove="this.AsNonRenderingEventHandler<PointerEventArgs>(OnResizerPointerMove)" 
+                 @onpointerup="this.AsNonRenderingEventHandler<PointerEventArgs>(OnResizerPointerUp)"
+                 @onpointerover="@OnResizerPointerOver"
+                 @onpointerleave="this.AsNonRenderingEventHandler(OnResizerPointerLeave)"
                  class="@ResizerClass" style="@ResizerStyle" />
         }
     </th>
