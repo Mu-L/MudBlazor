@@ -1227,7 +1227,7 @@ namespace MudBlazor.UnitTests.Components
             await dataGrid.FindAll(".mud-table-body tr")[0].ClickAsync();
 
             // Fire RowContextMenuClick
-            dataGrid.FindAll(".mud-table-body tr")[0].ContextMenu();
+            await dataGrid.FindAll(".mud-table-body tr")[0].ContextMenuAsync();
 
             // Edit an item.
             await dataGrid.FindAll(".mud-table-body tr td input")[0].ChangeAsync("A test");
@@ -1272,7 +1272,7 @@ namespace MudBlazor.UnitTests.Components
         }
 
         [Test]
-        public void DataGridOnContextMenuClickWhenIsGrouped()
+        public async Task DataGridOnContextMenuClickWhenIsGrouped()
         {
             var comp = Context.Render<DataGridGroupExpandedTest>();
             var dataGrid = comp.FindComponent<MudDataGrid<DataGridGroupExpandedTest.Fruit>>();
@@ -1284,7 +1284,7 @@ namespace MudBlazor.UnitTests.Components
             comp.Instance.RowContextMenuClicked.Should().Be(false);
 
             // Fire RowContextMenuClick
-            dataGrid.FindAll(".mud-table-body tr")[1].ContextMenu();
+            await dataGrid.FindAll(".mud-table-body tr")[1].ContextMenuAsync();
 
             // Make sure that the callbacks have been fired.
             comp.Instance.RowContextMenuClicked.Should().Be(true);
@@ -3905,7 +3905,7 @@ namespace MudBlazor.UnitTests.Components
                 PageY = openPosition.Top,
                 PageX = openPosition.Left
             };
-            comp.Find(".filter-button").Click(mouseArgs);
+            await comp.Find(".filter-button").ClickAsync(mouseArgs);
             await comp.WaitForAssertionAsync(() => dataGrid.Instance._openPosition.Should().Be(openPosition));
         }
 
