@@ -29,12 +29,12 @@ function serializeParameter(data, spec) {
         return data;
     }
 
-    let res = (Array.isArray(data)) ? [] : {};
+    const res = (Array.isArray(data)) ? [] : {};
     if (!spec) {
         spec = "*";
     }
 
-    for (let i in data) {
+    for (const i in data) {
         let currentMember = data[i];
 
         if (typeof currentMember === 'function' || currentMember === null) {
@@ -48,7 +48,7 @@ function serializeParameter(data, spec) {
                 continue;
             }
         } else {
-            currentMemberSpec = "*"
+            currentMemberSpec = "*";
         }
 
         if (typeof currentMember === 'object') {
