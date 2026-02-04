@@ -20,6 +20,11 @@ namespace MudBlazor
         Guid Id { get; }
 
         /// <summary>
+        /// The options used for this dialog.
+        /// </summary>
+        DialogOptions? Options { get; }
+
+        /// <summary>
         /// The content within this dialog.
         /// </summary>
         RenderFragment? RenderFragment { get; set; }
@@ -65,6 +70,12 @@ namespace MudBlazor
         /// </summary>
         /// <param name="inst">The new dialog to use.</param>
         void InjectDialog(object inst);
+
+        /// <summary>
+        /// Replaces the dialog options.
+        /// </summary>
+        /// <param name="options">The new options to use</param>
+        void InjectOptions(DialogOptions options);
 
         /// <summary>
         /// Gets the result of closing the dialog.

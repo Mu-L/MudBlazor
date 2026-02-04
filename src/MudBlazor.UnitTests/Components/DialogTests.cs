@@ -1,4 +1,5 @@
-﻿using AwesomeAssertions;
+﻿using System.Web;
+using AwesomeAssertions;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -89,6 +90,39 @@ namespace MudBlazor.UnitTests.Components
             result.Data.Should().BeNull();
             result.DataType.Should().BeNull();
             result.Canceled.Should().BeFalse();
+        }
+
+        /// <summary>
+        /// Opening and closing dialogs via navigation.
+        /// </summary>
+        [Test]
+        public async Task CloseOnNavigationTest()
+        {
+            var comp = Context.Render<MudDialogProvider>();
+            comp.Markup.Trim().Should().BeEmpty();
+            var dialogService = Context.Services.GetRequiredService<IDialogService>();
+            dialogService.Should().NotBe(null);
+            var navigationManager = Context.Services.GetRequiredService<NavigationManager>();
+            navigationManager.Should().NotBe(null);
+
+            //create 2 instances and dismiss all except for one with CloseOnNavigation = false
+            var closeOnNavigationOptions = new DialogOptions
+            {
+                CloseOnNavigation = false
+            };
+            await comp.InvokeAsync(async () => _ = await dialogService.ShowAsync<DialogOkCancel>("test", options: closeOnNavigationOptions));
+            await comp.InvokeAsync(async () => _ = await dialogService.ShowAsync<DialogOkCancel>());
+            var cont = comp.FindAll("div.mud-dialog-container");
+            cont.Count.Should().Be(2);
+
+            var uri = new Uri(navigationManager.Uri);
+            var query = HttpUtility.ParseQueryString(uri.Query);
+            query["query"] = Guid.NewGuid().ToString();
+            var newUri = $"{uri.GetLeftPart(UriPartial.Path)}?{query}";
+            await comp.InvokeAsync(() => navigationManager.NavigateTo(newUri));
+
+            cont = comp.FindAll("div.mud-dialog-container");
+            cont.Count.Should().Be(1);
         }
 
         /// <summary>
@@ -1496,6 +1530,170 @@ namespace MudBlazor.UnitTests.Components
             var closeBtn = comp.Find(".mud-button-close");
             closeBtn.Should().NotBeNull();
             closeBtn.GetAttribute("blazor:onmousedown:preventdefault").Should().Be("");
+        }
+
+        /// <summary>
+        /// InjectOptions() should set the options of the calling IDialogReference.
+        /// </summary>
+        [Test]
+        public async Task InjectOptions_ShouldNotBeNull()
+        {
+            var service = Context.Services.GetRequiredService<IDialogService>();
+
+            var reference = await service.ShowAsync<DialogOkCancel>();
+
+            reference.InjectOptions(new DialogOptions());
+            reference.Options.Should().NotBe(null);
+        }
+
+        /// <summary>
+        /// SetOptions() should set the options of the dialog reference that corresponds to the given id.
+        /// </summary>
+        [Test]
+        public async Task SetOptions_ShouldNotBeNull()
+        {
+            var service = Context.Services.GetRequiredService<IDialogService>();
+            var provider = Context.Render<MudDialogProvider>();
+
+            var reference = await service.ShowAsync<DialogOkCancel>();
+
+            provider.Instance.SetOptions(reference.Id, new DialogOptions());
+            reference.Options.Should().NotBe(null);
+        }
+
+        /// <summary>
+        /// ShouldDismissOnNavigation() should return true if the dialog reference's options CloseOnNavigation is set to true.
+        /// </summary>
+        [Test]
+        public async Task ShouldDismissOnNavigation_ShouldBeTrue()
+        {
+            var service = Context.Services.GetRequiredService<IDialogService>();
+            var provider = Context.Render<MudDialogProvider>();
+
+            var options = new DialogOptions
+            {
+                CloseOnNavigation = true
+            };
+            var reference = await service.ShowAsync<DialogOkCancel>("test", options: options);
+
+            provider.Instance.ShouldDismissOnNavigation(reference, "/test").Should().BeTrue();
+        }
+
+        /// <summary>
+        /// ShouldDismissOnNavigation() should return false if the dialog reference's options CloseOnNavigation is set to false.
+        /// </summary>
+        [Test]
+        public async Task ShouldDismissOnNavigation_ShouldBeFalse()
+        {
+            var service = Context.Services.GetRequiredService<IDialogService>();
+            var provider = Context.Render<MudDialogProvider>();
+
+            var reference = await service.ShowAsync<DialogOkCancel>();
+            var options = new DialogOptions
+            {
+                CloseOnNavigation = false
+            };
+            reference.InjectOptions(options);
+
+            provider.Instance.ShouldDismissOnNavigation(reference, "/test").Should().BeFalse();
+        }
+
+        /// <summary>
+        /// HasRouteChanged() should return true if the dialog reference's options
+        /// CloseOnNavigation is set to null and the absolute path has changed.
+        /// </summary>
+        [Test]
+        public async Task HasRouteChanged_ShouldBeTrueWhenCloseOnNavigationIsNullAndRouteChanged()
+        {
+            var service = Context.Services.GetRequiredService<IDialogService>();
+            var navigationManager = Context.Services.GetRequiredService<NavigationManager>();
+            var provider = Context.Render<MudDialogProvider>();
+
+            var currentRoute = navigationManager.ToAbsoluteUri($"/test/{Guid.NewGuid()}").ToString();
+            navigationManager.NavigateTo(currentRoute);
+
+            var reference = await service.ShowAsync<DialogOkCancel>();
+            var options = new DialogOptions
+            {
+                CloseOnNavigation = null
+            };
+            reference.InjectOptions(options);
+
+            var changedRoute = navigationManager.ToAbsoluteUri($"{currentRoute}/{Guid.NewGuid()}").AbsolutePath.TrimEnd('/');
+            provider.Instance.HasRouteChanged(changedRoute).Should().BeTrue();
+        }
+
+        /// <summary>
+        /// HasRouteChanged() should return false if the dialog reference's options
+        /// CloseOnNavigation is set to null and only the query or fragment has changed.
+        /// </summary>
+        [Test]
+        public async Task HasRouteChanged_ShouldBeFalseWhenCloseOnNavigationIsNullAndQueryOrFragmentChanged()
+        {
+            var service = Context.Services.GetRequiredService<IDialogService>();
+            var navigationManager = Context.Services.GetRequiredService<NavigationManager>();
+            var provider = Context.Render<MudDialogProvider>();
+
+            var currentRoute = navigationManager.ToAbsoluteUri($"/test/{Guid.NewGuid()}").ToString();
+            navigationManager.NavigateTo(currentRoute);
+
+            var reference = await service.ShowAsync<DialogOkCancel>();
+            var options = new DialogOptions
+            {
+                CloseOnNavigation = null
+            };
+            reference.InjectOptions(options);
+
+            var changedQuery = navigationManager.ToAbsoluteUri($"{currentRoute}?query={Guid.NewGuid()}").AbsolutePath;
+            provider.Instance.HasRouteChanged(changedQuery).Should().BeFalse();
+
+            var changedFragment = navigationManager.ToAbsoluteUri($"{currentRoute}#{Guid.NewGuid()}").AbsolutePath;
+            provider.Instance.HasRouteChanged(changedFragment).Should().BeFalse();
+        }
+
+        /// <summary>
+        /// HasRouteChanged() should return true if the dialog reference's options is set to null
+        /// and the absolute path has changed.
+        /// </summary>
+        [Test]
+        public async Task HasRouteChanged_ShouldBeTrueWhenOptionsIsNullAndRouteChanged()
+        {
+            var service = Context.Services.GetRequiredService<IDialogService>();
+            var navigationManager = Context.Services.GetRequiredService<NavigationManager>();
+            var provider = Context.Render<MudDialogProvider>();
+
+            var currentRoute = navigationManager.ToAbsoluteUri($"/test/{Guid.NewGuid()}").ToString();
+            navigationManager.NavigateTo(currentRoute);
+
+            var reference = await service.ShowAsync<DialogOkCancel>();
+            reference.InjectOptions(null);
+
+            var changedRoute = navigationManager.ToAbsoluteUri($"{currentRoute}/{Guid.NewGuid()}").AbsolutePath.TrimEnd('/');
+            provider.Instance.HasRouteChanged(changedRoute).Should().BeTrue();
+        }
+
+        /// <summary>
+        /// HasRouteChanged() should return false if the dialog reference's options is set to null
+        /// and only the query or fragment has changed.
+        /// </summary>
+        [Test]
+        public async Task HasRouteChanged_ShouldBeFalseWhenOptionsIsNullAndQueryOrFragmentChanged()
+        {
+            var service = Context.Services.GetRequiredService<IDialogService>();
+            var navigationManager = Context.Services.GetRequiredService<NavigationManager>();
+            var provider = Context.Render<MudDialogProvider>();
+
+            var currentRoute = navigationManager.ToAbsoluteUri($"/test/{Guid.NewGuid()}").ToString();
+            navigationManager.NavigateTo(currentRoute);
+
+            var reference = await service.ShowAsync<DialogOkCancel>();
+            reference.InjectOptions(null);
+
+            var changedQuery = navigationManager.ToAbsoluteUri($"{currentRoute}?query={Guid.NewGuid()}").AbsolutePath;
+            provider.Instance.HasRouteChanged(changedQuery).Should().BeFalse();
+
+            var changedFragment = navigationManager.ToAbsoluteUri($"{currentRoute}#{Guid.NewGuid()}").AbsolutePath;
+            provider.Instance.HasRouteChanged(changedFragment).Should().BeFalse();
         }
     }
     internal class CustomDialogService : DialogService

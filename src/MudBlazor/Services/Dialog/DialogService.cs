@@ -217,7 +217,7 @@ namespace MudBlazor
             }
 
             var dialogReference = CreateReference();
-
+            dialogReference.InjectOptions(options);
             var dialogContent = DialogHelperComponent.Wrap(builder =>
             {
                 var i = 0;

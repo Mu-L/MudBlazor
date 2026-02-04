@@ -60,6 +60,9 @@ namespace MudBlazor
         public Guid Id { get; }
 
         /// <inheritdoc />
+        public DialogOptions? Options { get; private set; }
+
+        /// <inheritdoc />
         public object? Dialog { get; private set; }
 
         /// <inheritdoc />
@@ -80,6 +83,12 @@ namespace MudBlazor
         public void InjectRenderFragment(RenderFragment rf)
         {
             RenderFragment = rf;
+        }
+
+        /// <inheritdoc />
+        public void InjectOptions(DialogOptions options)
+        {
+            Options = options;
         }
 
         /// <inheritdoc />
