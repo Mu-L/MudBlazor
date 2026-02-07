@@ -33,7 +33,7 @@ namespace MudBlazor
         private string? _lastSelectedId = string.Empty;
         private DateTimeOffset _lastSearchTime = DateTimeOffset.MinValue;
         private readonly ParameterState<bool> _openState;
-        private readonly ParameterState<IEnumerable<T?>?> _selectedValuesState;
+        private readonly ParameterState<IReadOnlyCollection<T?>?> _selectedValuesState;
         private readonly MudSelectContext<T> _context;
 
         /// <inheritdoc />
@@ -50,8 +50,6 @@ namespace MudBlazor
             _context = new MudSelectContext<T>(this);
             Adornment = Adornment.End;
             IconSize = Size.Medium;
-            // Set default value to ensure ParameterState never holds null
-            SelectedValues = new HashSet<T?>();
             using var registerScope = CreateRegisterScope();
             registerScope.RegisterParameter<bool>(nameof(MultiSelection))
                 .WithParameter(() => MultiSelection)
@@ -62,7 +60,7 @@ namespace MudBlazor
             _openState = registerScope.RegisterParameter<bool>(nameof(Open))
                 .WithParameter(() => Open)
                 .WithEventCallback(() => OpenChanged);
-            _selectedValuesState = registerScope.RegisterParameter<IEnumerable<T?>?>(nameof(SelectedValues))
+            _selectedValuesState = registerScope.RegisterParameter<IReadOnlyCollection<T?>?>(nameof(SelectedValues))
                 .WithParameter(() => SelectedValues)
                 .WithEventCallback(() => SelectedValuesChanged)
                 .WithChangeHandler(OnSelectedValuesChangedAsync)
@@ -483,7 +481,7 @@ namespace MudBlazor
         /// Occurs when <see cref="SelectedValues"/> has changed.
         /// </summary>
         [Parameter]
-        public EventCallback<IEnumerable<T?>?> SelectedValuesChanged { get; set; }
+        public EventCallback<IReadOnlyCollection<T?>?> SelectedValuesChanged { get; set; }
 
         /// <summary>
         /// The custom function for setting the <c>Text</c> from a list of selected items.
@@ -524,15 +522,15 @@ namespace MudBlazor
         /// </remarks>
         [Parameter, ParameterState]
         [Category(CategoryTypes.FormComponent.Data)]
-        public IEnumerable<T?>? SelectedValues { get; set; }
+        public IReadOnlyCollection<T?>? SelectedValues { get; set; } = [];
 
-        private async Task OnSelectedValuesChangedAsync(ParameterChangedEventArgs<IEnumerable<T?>?> arg)
+        private async Task OnSelectedValuesChangedAsync(ParameterChangedEventArgs<IReadOnlyCollection<T?>?> arg)
         {
             var value = arg.Value;
-            var set = value ?? new HashSet<T?>(Comparer);
 
             // Update internal HashSet with new values - make a defensive copy to avoid shared references
-            _selectedValues = new HashSet<T?>(set, Comparer);
+            // The HashSet uses the Comparer for equality checks and ensures uniqueness
+            _selectedValues = value != null ? new HashSet<T?>(value, Comparer) : new HashSet<T?>(Comparer);
 
             // Notify all subscribed items of the selection change
             await _context.NotifySelectionChangedAsync();
@@ -1074,7 +1072,7 @@ namespace MudBlazor
         /// <summary>
         /// Internal method for the context to access the current selected values.
         /// </summary>
-        internal IEnumerable<T?>? GetSelectedValues() => _selectedValuesState.Value;
+        internal IReadOnlyCollection<T?>? GetSelectedValues() => _selectedValuesState.Value;
 
         /// <summary>
         /// Sets the focus to this component.
