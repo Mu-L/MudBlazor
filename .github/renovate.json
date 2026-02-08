@@ -8,14 +8,15 @@
         "mergeConfidence:all-badges"
     ],
     "labels": [
-        "dependency"
+        "dependency",
+        "build"
     ],
     "commitMessagePrefix": "Build: ",
-    "minimumReleaseAge": "14 days",
+    "minimumReleaseAge": "7 days",
     "vulnerabilityAlerts": {
         "enabled": true,
         "labels": [
-            "triage needed"
+            "awaiting triage"
         ]
     },
     "packageRules": [
