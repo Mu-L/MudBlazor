@@ -42,7 +42,7 @@ public partial class MudChipSet<T> : MudComponentBase, IDisposable
     private readonly ParameterState<IReadOnlyCollection<T>?> _selectedValues;
 
     private HashSet<T> _selection = new();
-    private HashSet<MudChip<T>> _chips = new();
+    private readonly HashSet<MudChip<T>> _chips = new();
     private bool MultiSelection => SelectionMode == SelectionMode.MultiSelection;
     private bool Mandatory => SelectionMode == SelectionMode.SingleSelection;
 
@@ -351,11 +351,7 @@ public partial class MudChipSet<T> : MudComponentBase, IDisposable
         if (_disposed)
             return; // don't raise any events if we are already disposed
         var value = chip.GetValue();
-        //if (chip.IsSelectedState.Value && value is not null)
-        //{
         await UpdateSelectedValuesAsync(_selection.Where(x => !Comparer.Equals(x, value)).ToList());
-        //}
-        // return Task.CompletedTask;
         StateHasChanged();
     }
 
