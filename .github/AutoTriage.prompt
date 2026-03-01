@@ -192,7 +192,7 @@ When NOT to edit:
     - Otherwise use the primary user-facing component/group being changed.
     - If a new helper component mainly supports an existing component workflow, keep the existing component as prefix (e.g. prefer `MudDropZone: Add custom drag handle support` over `MudDragHandle: Add new component`).
     - Use the new component name as prefix only when it is standalone (independent usage/docs/examples or broad cross-component impact).
-    - Use up to 3 component prefixes (e.g. `MudSelect, MudAutocomplete: ...`); if more than 3 components are affected, use a broader group prefix (e.g. `Inputs:`, `Charts:`).
+    - Use up to 3 component prefixes (e.g. `MudSelect, MudAutocomplete: ...`); if more than 3 components are affected, or the prefix is >=40 characters, use a broader group prefix (e.g. `Inputs:`, `Charts:`, `Pickers:`).
   - Use literal canonical component names with exact spelling/capitalization.
   - Reject vague suffixes (e.g. `adjustments`, `updates`, `changes`, `improvements`, `fixes`, `refactor` without saying what changed).
 
