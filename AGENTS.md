@@ -101,7 +101,15 @@ dotnet test src/MudBlazor.UnitTests/MudBlazor.UnitTests.csproj --filter "FullyQu
 - If you are unsure whether the build output depends on regenerated frontend assets, run the normal scoped build without `SkipBunCompile`.
 
 ### Formatting
-Formatting is typically handled by the IDE and validated by CI, so do not add dedicated formatting command runs to the default local loop.
+Run `dotnet format whitespace --no-restore --include <path/to/changed/files>` once at the very end of the task as a final pre-PR pass to catch whitespace/newline/charset/etc mistakes. Do not run it repeatedly during the normal edit-build-test loop.
+
+Run this command from the `src` directory. When using `--include`, pass file paths relative to `src`, for example: `--include MudBlazor/Components/List/MudListItem.razor.cs`.
+
+If `src/.editorconfig` changed, format the whole `src` tree:
+
+```bash
+dotnet format --no-restore
+```
 
 ### Choose the smallest valid verification loop
 - For repository metadata or prose-only changes outside the build inputs, such as `README.md`, `CHANGELOG.md`, or `.github/` text-only edits: do not run `dotnet`.
@@ -254,6 +262,7 @@ private Task ToggleAsync()
 ## Change Checklist
 
 Before finishing, verify all of the following:
+- Formatting was run for relevant changed files.
 - The relevant target project builds cleanly with no new warnings when code, docs app, analyzer, or asset inputs changed.
 - Tests were updated and run when behavior changed.
 - Docs were updated when component behavior or public API changed.
