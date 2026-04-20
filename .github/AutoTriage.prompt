@@ -49,7 +49,7 @@ Environment Labels (apply at most one per category):
 - Only add an environment label when the impact is exclusive to that environment. Evidence must be one of: (a) explicit "only in X, not in Y" statement; (b) repro/investigation shows fail in X and pass in a contrasting Y; or (c) cited, known env-specific code path. Never add based on template selections, mentions in title/body, or author setup alone. If multiple envs are mentioned without contrast, add none. If conflicting or unjustified env labels exist, remove them silently.
 
 Misc labels:
-`regression`, `breaking change`, `has workaround`
+`API change`, `regression`, `breaking change`, `has workaround`
 
 ## Good First Issue
 Apply `good first issue` while ALL conditions are met:
