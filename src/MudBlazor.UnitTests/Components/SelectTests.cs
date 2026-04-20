@@ -712,6 +712,7 @@ namespace MudBlazor.UnitTests.Components
             {
                 await select.Instance.OpenMenu();
                 await select.Instance.CloseMenu();
+                await comp.Find($"#{select.Instance.ElementId}").TriggerEventAsync("onfocusout", new FocusEventArgs());
             });
             eventCounter.Should().Be(1);
         }
@@ -1075,6 +1076,23 @@ namespace MudBlazor.UnitTests.Components
             var select = comp.FindComponent<MudSelect<string>>().Instance;
             select.Required.Should().BeTrue();
             await comp.InvokeAsync(() => select.ValidateAsync());
+            select.ValidationErrors.First().Should().Be("Required");
+        }
+
+        /// <summary>
+        /// Required MudSelect should show validation error on focus loss without a value selected.
+        /// </summary>
+        [Test]
+        public async Task Select_Required_Should_ShowValidationError_OnFocusOut()
+        {
+            var comp = Context.Render<SelectRequiredTest>();
+            var select = comp.FindComponent<MudSelect<string>>().Instance;
+            select.Required.Should().BeTrue();
+            select.HasErrors.Should().BeFalse();
+            select.Touched.Should().BeFalse();
+            await comp.InvokeAsync(async () => await comp.Find($"#{select.ElementId}").TriggerEventAsync("onfocusout", new FocusEventArgs()));
+            select.Touched.Should().BeTrue();
+            select.HasErrors.Should().BeTrue();
             select.ValidationErrors.First().Should().Be("Required");
         }
 

@@ -731,7 +731,6 @@ namespace MudBlazor
             if (focusAgain)
             {
                 StateHasChanged();
-                await OnBlur.InvokeAsync(new FocusEventArgs());
                 _elementReference.FocusAsync().CatchAndLog(ignoreExceptions: true);
                 StateHasChanged();
             }
@@ -994,13 +993,17 @@ namespace MudBlazor
             }
         }
 
-        private async Task OnFocusOutAsync()
+        private async Task OnFocusOutAsync(FocusEventArgs args)
         {
             if (_openState.Value)
             {
                 // when the menu is open we immediately get back the focus if we lose it (i.e. because of checkboxes in multi-select)
                 // otherwise we can't receive key strokes any longer
                 await FocusAsync();
+            }
+            else
+            {
+                await OnBlurredAsync(args);
             }
         }
 
@@ -1363,7 +1366,7 @@ namespace MudBlazor
 
         internal Task OnBlurAsync(FocusEventArgs obj)
         {
-            return base.OnBlur.InvokeAsync(obj);
+            return OnBlurredAsync(obj);
         }
 
         protected override void OnInitialized()
