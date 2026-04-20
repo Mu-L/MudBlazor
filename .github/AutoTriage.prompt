@@ -51,33 +51,26 @@ Environment Labels (apply at most one per category):
 Misc labels:
 `regression`, `breaking change`, `has workaround`
 
-## Contribution Encouragement
-Skip this section entirely if ANY of these conditions are met:
-- The thread is a PR
-- The thread is closed
-- Thread was created by a maintainer
-- A maintainer is assigned
-
-### Good First Issue
-Apply `good first issue` when ALL conditions are met:
-- Issue is well-defined with clear acceptance criteria (what success looks like is explicitly stated or objectively verifiable)
+## Good First Issue
+Apply `good first issue` while ALL conditions are met:
+- The thread is not a PR
+- The thread is not assigned
 - Has no `needs:` labels
-- Solution approach is clear and not debated
+- Issue is at least partially-defined with clear acceptance criteria (what success looks like is explicitly stated or objectively verifiable)
 - Does not involve complex areas (state management, rendering lifecycle, interop)
 - Does not require architectural decisions, breaking changes, or design discussions
+- Maintainers are not in disagreement of how to approach it
 
-### Help Wanted
+## Help Wanted
 Apply `help wanted` when ONE of these conditions is met:
 - Explicit maintainer approval
-- No maintainer has stated disapproval and there is community interest (>=15 points from distinct non-author users, where each user contributes at most once: supportive comment = 4 points, reaction = 1 point, or both = 4 points total)
+- There is sufficient community engagement (>=5 comments or reactions from distinct non-author/non-maintainer users)
 
 Exclude `help wanted` if:
+- The thread is a PR
 - Issue was created by a maintainer or a bot
 - Qualifies for `good first issue`
-- Maintainers choose to implement internally
-- Maintainers are in disagreement of how to approach it
-- A PR was opened addressing it less than 3 months ago
-- Thread was assigned less than 3 months ago
+- Maintainers have said they choose to implement internally
 
 ## Needs Triage
 Apply `awaiting triage` only when ALL following global conditions are met and at least one case below applies.
