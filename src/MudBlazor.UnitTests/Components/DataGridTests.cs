@@ -2077,6 +2077,40 @@ namespace MudBlazor.UnitTests.Components
 
             #endregion
 
+            #region FilterOperator.Enum.Empty
+
+            filterDefinition = new FilterDefinition<DataGridFiltersTest.Model>
+            {
+                Column = statusColumn,
+                Operator = FilterOperator.Enum.Empty
+            };
+            func = filterDefinition.GenerateFilterFunction(new FilterOptions
+            {
+                FilterCaseSensitivity = dataGrid.Instance.FilterCaseSensitivity
+            });
+            func.Invoke(new("Sam", 456, Severity.Normal, null, null, null, null)).Should().BeFalse();
+            func.Invoke(new("Joe", 45, Severity.Info, null, null, null, null)).Should().BeFalse();
+            func.Invoke(new("Joe", 45, null, null, null, null, null)).Should().BeTrue();
+
+            #endregion
+
+            #region FilterOperator.Enum.NotEmpty
+
+            filterDefinition = new FilterDefinition<DataGridFiltersTest.Model>
+            {
+                Column = statusColumn,
+                Operator = FilterOperator.Enum.NotEmpty
+            };
+            func = filterDefinition.GenerateFilterFunction(new FilterOptions
+            {
+                FilterCaseSensitivity = dataGrid.Instance.FilterCaseSensitivity
+            });
+            func.Invoke(new("Sam", 456, Severity.Normal, null, null, null, null)).Should().BeTrue();
+            func.Invoke(new("Joe", 45, Severity.Info, null, null, null, null)).Should().BeTrue();
+            func.Invoke(new("Joe", 45, null, null, null, null, null)).Should().BeFalse();
+
+            #endregion
+
             // null operator
             filterDefinition = new FilterDefinition<DataGridFiltersTest.Model>
             {
