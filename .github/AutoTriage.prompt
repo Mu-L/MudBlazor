@@ -69,26 +69,19 @@ Apply `help wanted` when ALL conditions are met:
 - Issue was not created by a maintainer or a bot
 - Has no `needs:` labels
 - Does not qualify for `good first issue`
-- The thread shows a sustained need for additional help beyond normal triage or discussion, based on the discussion history (for example, repeated non-maintainer offers to investigate or implement, repeated requests to move the issue forward, or explicit signals that outside contributions are welcome)
+- At least one of the following is true:
+  - There have been repeated requests to move the issue forward
+  - There are explicit signals that outside contributions are welcome
 
 ## Needs Triage
-Apply `awaiting triage` only when ALL following global conditions are met and at least one case below applies.
-
-Global conditions:
-- Thread is open
-- Thread is not assigned to a maintainer or created by a maintainer
-- Thread does not have a `needs:` label or `help wanted` label
-
-Case — Thread is a pull request:
+Apply `awaiting triage` while ALL conditions are met:
+- Thread is a pull request
+- Thread is not assigned
+- Thread was not created by a maintainer or a bot
+- Thread does not qualify for a `needs:` label or `help wanted` label
 - The author comments a request for help/review/triage
 - No maintainer has replied since that comment
 - At least 14 days have elapsed since that comment
-
-Case — Thread is an issue:
-- Has at least two attention-request comments (e.g., asks for help/review/triage)
-- Those comments were within the last 12 months
-- Those comments are at least 28 days apart
-- No maintainer has replied since the first comment
 
 ## Missing Information Handling
 Purpose: Capture essential details early on open threads so maintainers can act quickly, including low-signal reports (link-only, screenshot/video-only, missing PR rationale, or unsubstantiated enhancements), while staying out of their way once they engage.
