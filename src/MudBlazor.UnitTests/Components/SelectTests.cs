@@ -2085,6 +2085,16 @@ namespace MudBlazor.UnitTests.Components
         }
 
         [Test]
+        public async Task Select_CustomItemRenderFragment()
+        {
+            var comp = Context.Render<CustomItemRenderFragmentTest>();
+
+            comp.Find(".mud-select-input").TextContent.Should().Contain("Initial Item 1");
+            await comp.Find("#switch_values").ClickAsync();
+            comp.Find(".mud-select-input").TextContent.Should().Contain("Item 1");
+        }
+
+        [Test]
         public async Task Select_ShouldExposeComboboxSemantics_OnInput()
         {
             var comp = Context.Render<MultiSelectTest6>();
