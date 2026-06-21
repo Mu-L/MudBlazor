@@ -116,4 +116,36 @@ public class SnackbarServiceTests : BunitTest
         // Assert
         sut.ShownSnackbars.Should().ContainSingle().Which.SnackbarMessage.Key.Should().Be("keep");
     }
+
+    [Test]
+    public void ShownSnackbars_RespectsMaxDisplayedSnackbars()
+    {
+        // Arrange
+        var configuration = Options.Create(new SnackbarConfiguration { MaxDisplayedSnackbars = 2, PreventDuplicates = false });
+        var sut = new SnackbarService(_navigationManager, new FakeTimeProvider(), configuration);
+        sut.Add("First");
+        sut.Add("Second");
+        sut.Add("Third");
+
+        // Act & Assert: only the first two are exposed even though three were added.
+        sut.ShownSnackbars.Select(x => x.SnackbarMessage.Text).Should().Equal("First", "Second");
+    }
+
+    [Test]
+    public void Dispose_UnsubscribesFromNavigationAndConfiguration()
+    {
+        // Arrange
+        var configuration = Options.Create(new SnackbarConfiguration { ClearAfterNavigation = true });
+        var sut = new SnackbarService(_navigationManager, new FakeTimeProvider(), configuration);
+        var raised = 0;
+        sut.OnSnackbarsUpdated += () => raised++;
+
+        // Act
+        sut.Dispose();
+
+        // Assert: post-dispose navigation and config changes must no longer notify the disposed service.
+        _navigationManager.NavigateTo("/new-location");
+        sut.Configuration.NewestOnTop = !sut.Configuration.NewestOnTop;
+        raised.Should().Be(0);
+    }
 }
