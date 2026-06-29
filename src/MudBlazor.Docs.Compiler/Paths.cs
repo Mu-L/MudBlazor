@@ -35,4 +35,16 @@ public static class Paths
     public static string ApiDocumentationPath => Path.Join(DocsDirPath, "Models", "Generated");
 
     public static string ApiDocumentationFilePath => Path.Join(ApiDocumentationPath, ApiDocumentationFile);
+
+    private static string StampDirPath => Path.Join(DocsDirPath, "obj");
+
+    public static string SnippetsStampFilePath => Path.Join(StampDirPath, SnippetsFile + ".stamp");
+
+    public static string ApiDocumentationStampFilePath => Path.Join(StampDirPath, ApiDocumentationFile + ".stamp");
+
+    public static void TouchStamp(string stampFilePath)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(stampFilePath)!);
+        File.WriteAllText(stampFilePath, DateTime.UtcNow.ToString("O"));
+    }
 }
