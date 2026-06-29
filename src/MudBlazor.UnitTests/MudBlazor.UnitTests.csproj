@@ -4,6 +4,9 @@
     <TargetFramework>$(PrimaryTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
     <EnableNUnitRunner>true</EnableNUnitRunner>
+    <!-- bUnit tests allocate heavily (component trees, AngleSharp DOM, a DI container per test).
+         The default Workstation GC serializes those allocations across the parallel fixtures on a single heap; Server GC gives each core its own heap. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
   
   <ItemGroup>
